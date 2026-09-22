@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-primary: #fcfbf8;
+    --bg-secondary: #f4f2eb;
+    --bg-surface: #ffffff;
+    --text-primary: #141413;
+    --text-secondary: #5c5a55;
+    --text-muted: #8c8982;
+    --border-subtle: #e6e2d8;
+    --border-strong: #141413;
+    --accent: #9e5033;
+    --accent-hover: #864228;
+    --accent-subtle: #f7ede8;
+    --dark-bg: #121211;
+    --dark-surface: #1a1918;
+    --dark-border: #282725;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, .font-editorial {
+    font-family: var(--font-serif), Georgia, Cambria, serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Restrained, purposeful custom utilities */
+.editorial-grid-line {
+  background: linear-gradient(90deg, transparent, rgba(20, 20, 19, 0.08), transparent);
+}
+
+.dark-editorial-grid-line {
+  background: linear-gradient(90deg, transparent, rgba(240, 238, 230, 0.1), transparent);
+}
+
+/* Subtle image reveal effect */
+.editorial-img-reveal {
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), filter 0.65s ease;
+}
+
+.editorial-img-reveal:hover {
+  transform: scale(1.02);
+}
+
+/* Custom discreet scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(20, 20, 19, 0.15);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(20, 20, 19, 0.3);
+}
