@@ -20,6 +20,20 @@ export const SEED_PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1544022613-e87ca75a784a?q=80&w=1000&auto=format&fit=crop",
     tryOnReferenceImage:
       "https://images.unsplash.com/photo-1544022613-e87ca75a784a?q=80&w=1000&auto=format&fit=crop",
+    tryOnAsset: {
+      type: "2d_warp",
+      url: "https://images.unsplash.com/photo-1544022613-e87ca75a784a?q=80&w=1000&auto=format&fit=crop",
+      anchors: {
+        neck: [0.5, 0.16],
+        leftShoulder: [0.22, 0.22],
+        rightShoulder: [0.78, 0.22],
+        leftHem: [0.28, 0.94],
+        rightHem: [0.72, 0.94],
+        leftSleeve: [0.12, 0.65],
+        rightSleeve: [0.88, 0.65],
+      },
+      hasValidAsset: true,
+    },
     modelImage:
       "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1000&auto=format&fit=crop",
     gallery: [
@@ -96,6 +110,20 @@ export const SEED_PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=1000&auto=format&fit=crop",
     tryOnReferenceImage:
       "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=1000&auto=format&fit=crop",
+    tryOnAsset: {
+      type: "2d_warp",
+      url: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=1000&auto=format&fit=crop",
+      anchors: {
+        neck: [0.5, 0.18],
+        leftShoulder: [0.2, 0.24],
+        rightShoulder: [0.8, 0.24],
+        leftHem: [0.26, 0.88],
+        rightHem: [0.74, 0.88],
+        leftSleeve: [0.1, 0.68],
+        rightSleeve: [0.9, 0.68],
+      },
+      hasValidAsset: true,
+    },
     gallery: [
       {
         id: "img-2-1",
@@ -152,6 +180,18 @@ export const SEED_PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=1000&auto=format&fit=crop",
     tryOnReferenceImage:
       "https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=1000&auto=format&fit=crop",
+    tryOnAsset: {
+      type: "2d_warp",
+      url: "https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=1000&auto=format&fit=crop",
+      anchors: {
+        neck: [0.5, 0.14],
+        leftShoulder: [0.24, 0.2],
+        rightShoulder: [0.76, 0.2],
+        leftHem: [0.3, 0.85],
+        rightHem: [0.7, 0.85],
+      },
+      hasValidAsset: true,
+    },
     gallery: [
       {
         id: "img-3-1",
@@ -200,6 +240,18 @@ export const SEED_PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1496747611176-843222e1e57c?q=80&w=1000&auto=format&fit=crop",
     tryOnReferenceImage:
       "https://images.unsplash.com/photo-1496747611176-843222e1e57c?q=80&w=1000&auto=format&fit=crop",
+    tryOnAsset: {
+      type: "2d_warp",
+      url: "https://images.unsplash.com/photo-1496747611176-843222e1e57c?q=80&w=1000&auto=format&fit=crop",
+      anchors: {
+        neck: [0.5, 0.12],
+        leftShoulder: [0.26, 0.18],
+        rightShoulder: [0.74, 0.18],
+        leftHem: [0.25, 0.96],
+        rightHem: [0.75, 0.96],
+      },
+      hasValidAsset: true,
+    },
     gallery: [
       {
         id: "img-4-1",
@@ -248,6 +300,12 @@ export const SEED_PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?q=80&w=1000&auto=format&fit=crop",
     tryOnReferenceImage:
       "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?q=80&w=1000&auto=format&fit=crop",
+    tryOnAsset: {
+      type: "3d_gltf",
+      url: "",
+      hasValidAsset: false,
+      disabledReason: "Try-On asset undergoing 3D mesh certification",
+    },
     gallery: [
       {
         id: "img-5-1",

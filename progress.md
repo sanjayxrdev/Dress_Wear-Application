@@ -49,3 +49,19 @@
   - Documented mobile device matrix in `tests/DEVICE_MATRIX.md`.
   - Built Playwright E2E suite in `tests/e2e/fitting-room.spec.ts`.
   - `npm run build`: Production Next.js build compiled successfully (18/18 routes). All routes verified with HTTP 200.
+- [2026-09-24] **Phase 16: Live AR Pipeline with One Euro Smoothing, WebGL Warp, & Occlusion Masking**:
+  - Implemented `lib/cv/one-euro-filter.ts`: adaptive speed-based cutoff filter eliminating jitter and low latency during movement.
+  - Implemented `lib/cv/pose-tracker.ts`: 30 FPS upper body landmark tracker in VIDEO mode with One Euro smoothing.
+  - Implemented `lib/cv/occlusion-mask.ts`: segmentation mask keeping arms, hands, and hair in front of garment.
+  - Implemented `lib/cv/webgl-garment-renderer.ts`: Three.js WebGL garment mesh warping over video feed.
+  - Built `components/studio/LiveARFittingRoom.tsx`: single live view with floating desktop & full-screen mobile modes, camera controls, quality HUD, and atomic garment carousel.
+  - Built `components/studio/TryOnClientView.tsx`: primary try-on experience defaulting to Live AR.
+- [2026-09-24] **Phase 17: Telemetry Ingestion & Playwright Headless Browser E2E Suite**:
+  - Built `app/api/analytics/route.ts` with in-memory ring buffer & Supabase persistence.
+  - Wired client-side telemetry in `LiveARFittingRoom`: `session_start` (TTFR ms), periodic `heartbeat` (15s interval), `garment_switch`, and `session_end`.
+  - Configured `playwright.config.ts` and installed Chromium headless shell.
+  - Executed `npx playwright test tests/e2e/fitting-room.spec.ts`: 1/1 passed in 3.0s with full fake media stream.
+  - `npm test`: 16/16 unit and integration tests passed in 127ms.
+  - `npm run test:load`: 50/50 concurrent sessions passed SLA.
+  - Production build: `npm run build` compiled 19/19 routes with 0 errors. Server running actively on port 3000.
+

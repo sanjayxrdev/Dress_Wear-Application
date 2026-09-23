@@ -26,6 +26,7 @@ export class LookQualityMonitor {
       return {
         state: 'degraded',
         guidance: 'Initializing camera feed...',
+        shouldPauseOverlay: false,
         personDetected: false,
         bodyRegionVisible: false,
         lightingScore: 50,
@@ -108,19 +109,19 @@ export class LookQualityMonitor {
 
       const meanLum = totalLuminance / totalPixels;
       let lightingScore = 100;
-      if (meanLum < 50) {
-        lightingScore = Math.max(10, Math.round((meanLum / 50) * 70));
-      } else if (meanLum > 210) {
-        lightingScore = Math.max(10, Math.round(((255 - meanLum) / 45) * 70));
+      if (meanLum < 45) {
+        lightingScore = Math.max(5, Math.round((meanLum / 45) * 60));
+      } else if (meanLum > 215) {
+        lightingScore = Math.max(10, Math.round(((255 - meanLum) / 40) * 70));
       } else {
         // Ideal range: 70-170
-        lightingScore = Math.min(100, Math.round(85 + (1 - Math.abs(meanLum - 120) / 70) * 15));
+        lightingScore = Math.min(100, Math.round(85 + (1 - Math.abs(meanLum - 120) / 75) * 15));
       }
 
       // Person presence & body region visibility
       const torsoRatio = torsoTotalPixels > 0 ? torsoPixelsWithBody / torsoTotalPixels : 0;
-      const personDetected = torsoRatio > 0.18;
-      const bodyRegionVisible = torsoRatio > 0.32 && torsoRatio < 0.92;
+      const personDetected = torsoRatio > 0.16;
+      const bodyRegionVisible = torsoRatio > 0.28 && torsoRatio < 0.88;
 
       // Sharpness & Motion Blur Score (0-100)
       const avgGradient = gradientSum / totalPixels;
@@ -133,40 +134,50 @@ export class LookQualityMonitor {
       }
 
       // Occlusion analysis in the center chest
-      // Detect excessive horizontal edges or non-human patterns in upper torso
       let occlusionScore = 92;
       if (torsoRatio > 0.88) {
         // Person too close to camera, cutting off shoulders
         occlusionScore = 45;
       }
 
-      // Guidance and State Determination
-      let guidance = 'Framing is good.';
+      // Guidance, State, and Overlay Pausing Determination
+      let guidance = 'Pose and lighting are optimal.';
       let state: 'good' | 'degraded' | 'blocked' = 'good';
+      let shouldPauseOverlay = false;
 
       if (!personDetected) {
         state = 'blocked';
         guidance = 'Step into the camera view.';
-      } else if (lightingScore < 40) {
+        shouldPauseOverlay = true;
+      } else if (lightingScore < 35 || meanLum < 30) {
+        // Very dark room: PAUSE overlay and show guidance rather than rendering a distorted result!
         state = 'blocked';
-        guidance = 'Face the light. Area is too dark.';
+        guidance = 'Face the light. Area is too dark for fitting.';
+        shouldPauseOverlay = true;
+      } else if (torsoRatio < 0.22) {
+        state = 'degraded';
+        guidance = 'Move closer.';
+        shouldPauseOverlay = false;
+      } else if (torsoRatio >= 0.88) {
+        state = 'degraded';
+        guidance = 'Step back so your shoulders fit in the frame.';
+        shouldPauseOverlay = false;
       } else if (!bodyRegionVisible) {
-        if (torsoRatio >= 0.88) {
-          state = 'degraded';
-          guidance = 'Step back so your shoulders fit in the frame.';
-        } else {
-          state = 'degraded';
-          guidance = 'Center yourself in the guide frame.';
-        }
-      } else if (motionBlurScore < 50) {
+        state = 'degraded';
+        guidance = 'Make sure your shoulders are visible.';
+        shouldPauseOverlay = false;
+      } else if (motionBlurScore < 45) {
         state = 'degraded';
         guidance = 'Hold still for a moment.';
-      } else if (lightingScore < 65) {
+        shouldPauseOverlay = false;
+      } else if (lightingScore < 60) {
         state = 'degraded';
-        guidance = 'Adjust lighting for best realistic fabric drape.';
+        guidance = 'Face the light for optimal fabric drape.';
+        shouldPauseOverlay = false;
       } else {
         state = 'good';
         guidance = 'Pose and lighting are optimal.';
+        shouldPauseOverlay = false;
       }
 
       // Frame smoothing
@@ -188,6 +199,7 @@ export class LookQualityMonitor {
       return {
         state,
         guidance,
+        shouldPauseOverlay,
         personDetected,
         bodyRegionVisible,
         lightingScore,
@@ -201,6 +213,7 @@ export class LookQualityMonitor {
       return {
         state: 'degraded',
         guidance: 'Adjusting camera tracking...',
+        shouldPauseOverlay: false,
         personDetected: true,
         bodyRegionVisible: true,
         lightingScore: 60,
@@ -219,5 +232,4 @@ export class LookQualityMonitor {
   }
 }
 
-// Global singleton instance for easy client-side reuse
 export const lookQualityMonitor = new LookQualityMonitor();

@@ -1,15 +1,16 @@
 import { test, expect } from '@playwright/test';
 
+test.use({
+  launchOptions: {
+    args: [
+      '--use-fake-device-for-media-stream',
+      '--use-fake-ui-for-media-stream',
+    ],
+  },
+  permissions: ['camera'],
+});
+
 test.describe('StyleTry AI — Live Virtual Fitting Room Acceptance Journey', () => {
-  test.use({
-    launchOptions: {
-      args: [
-        '--use-fake-device-for-media-stream',
-        '--use-fake-ui-for-media-stream',
-      ],
-    },
-    permissions: ['camera'],
-  });
 
   test('full merchant embed customer journey: consent, live video fitting, atomic switch, style match', async ({
     page,
@@ -58,8 +59,12 @@ test.describe('StyleTry AI — Live Virtual Fitting Room Acceptance Journey', ()
       iframeElement.locator('text=Visual try-on cannot guarantee physical sizing')
     ).toBeVisible();
 
+    // Close Style Match Drawer
+    const closeDrawerBtn = iframeElement.locator('button[aria-label="Close Drawer"]');
+    await closeDrawerBtn.click();
+
     // 10. Close Fitting Room and verify clean camera termination
-    const exitButton = iframeElement.locator('button[title="Exit Fitting Room"]');
+    const exitButton = iframeElement.locator('button[title="Exit Fitting Room"]').first();
     await exitButton.click();
   });
 });

@@ -58,7 +58,9 @@ export function StyleMatchDrawer({
 
         <button
           onClick={onClose}
-          className="p-1.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+          className="p-1.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          aria-label="Close Drawer"
+          title="Close Drawer"
         >
           <X className="w-5 h-5" />
         </button>

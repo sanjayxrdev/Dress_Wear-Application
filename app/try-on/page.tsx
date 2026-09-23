@@ -1,6 +1,6 @@
 import React from "react";
 import { fittedStore } from "@/lib/db/store";
-import { StudioDualPane } from "@/components/studio/StudioDualPane";
+import { TryOnClientView } from "@/components/studio/TryOnClientView";
 
 export default async function TryOnStudioPage() {
   const allProducts = await fittedStore.getProducts();
@@ -8,7 +8,7 @@ export default async function TryOnStudioPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <StudioDualPane
+      <TryOnClientView
         initialProduct={initialProduct}
         allProducts={allProducts}
       />

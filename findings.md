@@ -44,5 +44,17 @@
   - `YOUR PHOTO` pill (top-left) and `WEARING [GARMENT NAME]` pill (top-right).
   - Vertical split drag slider with 1:1 pointer tracking and circular grip handle.
   - `HOLD TO VIEW ORIGINAL` momentary press-and-hold button (bottom-left) with eye icon.
-  - `DRAG SLIDER TO COMPARE` hint text (bottom-right) that automatically fades after first interaction.
+## 5. Live On-Device AR Fitting Room & Browser E2E Automation
+- **Three.js Orthographic Projection Mapping**:
+  - WebGL canvas matches video dimensions (`width`, `height`) exactly.
+  - Setting up an `OrthographicCamera(0, vw, 0, -vh, 0.1, 1000)` with `-Y` coordinates allows direct 1:1 mapping between 2D screen/landmark coordinates and WebGL plane geometries without perspective distortion.
+- **Timing Precision in Client Telemetry**:
+  - `performance.now()` measures elapsed time relative to `timeOrigin` (navigation start), whereas `Date.now()` is wall-clock unix epoch ms (~1.79 trillion ms).
+  - Mixing `performance.now()` with `Date.now()` causes negative delta timestamps. Using `performance.now()` consistently across `session_start` (TTFR) and `session_end` produces accurate millisecond precision.
+- **Sandboxed Iframe & Drawer Pointer Interception**:
+  - In embedded e-commerce widgets (Shopify / WooCommerce), the outer header must yield when the full AR viewport becomes active to prevent z-index occlusion.
+  - Open side drawers (e.g. Style Match drawer) with `fixed inset-y-0` capture pointer events; automating user journeys in Playwright requires explicit close interactions before clicking backdrop/parent elements.
+- **Fake Media Stream in Headless Playwright**:
+  - `--use-fake-device-for-media-stream` and `--use-fake-ui-for-media-stream` provide a virtual color test pattern camera feed on Linux without requiring physical webcam hardware.
+  - Initializing `LookQualityAssessment` with baseline defaults allows instant HUD rendering before the first video frame is processed by canvas luminance analysis.
 

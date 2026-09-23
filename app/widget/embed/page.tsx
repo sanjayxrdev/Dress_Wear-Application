@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fittedStore } from '@/lib/db/store';
 import { Product } from '@/lib/types';
-import { CameraCapture } from '@/components/studio/CameraCapture';
+import { LiveARFittingRoom } from '@/components/studio/LiveARFittingRoom';
 import { StyleMatchDrawer } from '@/components/studio/StyleMatchDrawer';
 import { ConsentModal } from '@/components/privacy/ConsentModal';
 import { ShieldCheck, Sparkles, X } from 'lucide-react';
@@ -17,7 +17,7 @@ function EmbedFittingRoomContent() {
   const [product, setProduct] = useState<Product | null>(null);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [hasConsent, setHasConsent] = useState(false);
-  const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
+  const [isConsentModalOpen, setIsConsentModalOpen] = useState(true);
   const [sessionActive, setSessionActive] = useState(false);
 
   useEffect(() => {
@@ -106,58 +106,53 @@ function EmbedFittingRoomContent() {
         </div>
       )}
 
-      {/* Widget Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/40 backdrop-blur-md">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs font-semibold tracking-wider uppercase text-white/90">
-            StyleTry AI Live
-          </span>
-          {product && (
-            <span className="text-xs text-white/40 hidden sm:inline">
-              — {product.name}
+      {/* Widget Header (Shown prior to active fitting session) */}
+      {!sessionActive && (
+        <header className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/40 backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs font-semibold tracking-wider uppercase text-white/90">
+              StyleTry AI Live
             </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleClose}
-            className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-            title="Exit Fitting Room"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </header>
+            {product && (
+              <span className="text-xs text-white/40 hidden sm:inline">
+                — {product.name}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleClose}
+              className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
+              title="Exit Fitting Room"
+              aria-label="Exit Fitting Room"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </header>
+      )}
 
       {/* Main Viewport */}
       <main className="flex-1 relative overflow-hidden flex flex-col md:flex-row">
-        {sessionActive ? (
+        {sessionActive && product ? (
           <div className="flex-1 relative h-full flex flex-col">
-            <CameraCapture
-              onCapture={() => {}}
+            <LiveARFittingRoom
+              initialProduct={product}
+              allProducts={allProducts}
+              isFloating={false}
+              merchantId={merchantId}
               onClose={handleClose}
-              selectedGarment={
-                product
-                  ? {
-                      id: product.id,
-                      name: product.name,
-                      category: product.category,
-                      imageUrl: product.tryOnReferenceImage || product.primaryImage,
-                      price: product.price,
-                    }
-                  : undefined
-              }
-              garmentList={allProducts.map((p) => ({
-                id: p.id,
-                name: p.name,
-                category: p.category,
-                imageUrl: p.tryOnReferenceImage || p.primaryImage,
-                price: p.price,
-              }))}
-              onSelectGarment={(g) => {
-                const matched = allProducts.find((p) => p.id === g.id);
-                if (matched) setProduct(matched);
+              onAddToCart={(p, size) => {
+                if (typeof window !== 'undefined' && window.parent) {
+                  window.parent.postMessage(
+                    {
+                      type: 'STYLETRY_ADD_TO_CART',
+                      product: { id: p.id, name: p.name, price: p.price, size },
+                    },
+                    '*'
+                  );
+                }
               }}
             />
           </div>

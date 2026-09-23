@@ -1,7 +1,7 @@
 import React from "react";
 import { notFound } from "next/navigation";
 import { fittedStore } from "@/lib/db/store";
-import { StudioDualPane } from "@/components/studio/StudioDualPane";
+import { TryOnClientView } from "@/components/studio/TryOnClientView";
 
 interface TryOnWithProductPageProps {
   params: Promise<{ productId: string }>;
@@ -20,7 +20,7 @@ export default async function TryOnWithProductPage({
 
   return (
     <div className="flex-1 flex flex-col">
-      <StudioDualPane
+      <TryOnClientView
         initialProduct={selectedProduct}
         allProducts={allProducts}
       />

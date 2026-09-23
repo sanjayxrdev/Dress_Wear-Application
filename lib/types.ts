@@ -24,6 +24,25 @@ export interface ProductImage {
   sortOrder: number;
 }
 
+export interface GarmentAnchorPoints {
+  neck: [number, number];
+  leftShoulder: [number, number];
+  rightShoulder: [number, number];
+  leftHem: [number, number];
+  rightHem: [number, number];
+  leftSleeve?: [number, number];
+  rightSleeve?: [number, number];
+}
+
+export interface TryOnAsset {
+  type: "2d_warp" | "3d_gltf";
+  url: string;
+  anchors?: GarmentAnchorPoints;
+  gltfUrl?: string;
+  hasValidAsset: boolean;
+  disabledReason?: string;
+}
+
 export interface ProductSizeChart {
   unit: "cm" | "in";
   measurements: Record<string, { chest?: number; waist?: number; hips?: number; length?: number }>;
@@ -46,6 +65,7 @@ export interface Product {
   status: "active" | "draft" | "archived";
   primaryImage: string;
   tryOnReferenceImage: string;
+  tryOnAsset?: TryOnAsset;
   modelImage?: string;
   gallery: ProductImage[];
   variants: ProductVariant[];

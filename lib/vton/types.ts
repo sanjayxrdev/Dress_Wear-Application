@@ -109,6 +109,7 @@ export interface QualityMetrics {
 export interface LookQualityAssessment {
   state: 'good' | 'degraded' | 'blocked';
   guidance: string;
+  shouldPauseOverlay: boolean;
   personDetected: boolean;
   bodyRegionVisible: boolean;
   lightingScore: number; // 0-100
