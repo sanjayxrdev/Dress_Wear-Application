@@ -17,9 +17,26 @@ const sansFont = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "FITTED — AI Virtual Try-On",
+  title: {
+    default: "StyleTry AI — Live AR Fitting Room for E-Commerce",
+    template: "%s | StyleTry AI",
+  },
   description:
-    "See it on you before you buy. Commercial AI virtual try-on engine with photorealistic garment drape, instant switching, and zero camera retention.",
+    "Embeddable live AR and virtual try-on engine for e-commerce brands. Zero video retention, real-time pose tracking, and explainable style intelligence.",
+  openGraph: {
+    title: "StyleTry AI — Live AR Fitting Room for E-Commerce",
+    description:
+      "Embeddable live AR and virtual try-on engine for e-commerce brands. Zero video retention, real-time pose tracking, and explainable style intelligence.",
+    type: "website",
+    locale: "en_US",
+    siteName: "StyleTry AI",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "StyleTry AI — Live AR Fitting Room for E-Commerce",
+    description:
+      "Embeddable live AR and virtual try-on engine for e-commerce brands.",
+  },
 };
 
 export default function RootLayout({
