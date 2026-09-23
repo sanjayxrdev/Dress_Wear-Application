@@ -93,7 +93,7 @@ export function StyleMatchDrawer({
             {/* Editorial Stylist Explanation (LLM wording only) */}
             {stylistExplanation && (
               <p className="text-xs text-white/80 leading-relaxed italic border-t border-white/10 pt-3">
-                "{stylistExplanation}"
+                &ldquo;{stylistExplanation}&rdquo;
               </p>
             )}
           </div>
