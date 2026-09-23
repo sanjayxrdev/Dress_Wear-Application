@@ -7,7 +7,9 @@
     "build": "next build",
     "build:extension": "node extension/build.js",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsx --test tests/style-engine.test.ts tests/look-quality.test.ts tests/vton-provider.test.ts",
+    "test:load": "node tests/load/concurrent-sessions.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.0",
@@ -20,6 +22,7 @@
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/chrome": "^0.3.0",
     "@types/node": "^20",
@@ -28,6 +31,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

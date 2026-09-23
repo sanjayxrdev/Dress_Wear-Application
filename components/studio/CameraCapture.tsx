@@ -1,14 +1,44 @@
 "use client";
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { Camera, RefreshCw, AlertCircle, Sparkles, Shirt } from "lucide-react";
-import { FramingGuide } from "./FramingGuide";
-import { analyzeVideoLighting, LightingAnalysisResult } from "@/lib/cv/lighting-detector";
-import { RealtimeGarmentTracker } from "@/lib/cv/realtime-garment-tracker";
+import {
+  Camera,
+  RefreshCw,
+  AlertCircle,
+  Sparkles,
+  Shirt,
+  ShieldCheck,
+  X,
+  Gauge,
+  Info,
+  HelpCircle,
+} from "lucide-react";
+import { LookQualityMonitor } from "@/lib/cv/look-quality-monitor";
+import { createVTONProvider } from "@/lib/vton";
+import { IVTONProvider } from "@/lib/vton/provider";
+import { LookQualityAssessment, QualityMetrics, SessionState, VTONError } from "@/lib/vton/types";
+import { computeStyleMatch, StyleMatchResult } from "@/lib/style-engine/scorer";
+import { evaluatePhysicalSizeFit, SizeFitAssessment } from "@/lib/style-engine/fit-calculator";
+import { generateStyleMatchExplanation } from "@/lib/style-engine/llm-gateway";
+import { StyleMatchDrawer } from "./StyleMatchDrawer";
+import { fittedStore } from "@/lib/db/store";
+import { Product } from "@/lib/types";
+
+interface GarmentItem {
+  id: string;
+  name: string;
+  category?: string;
+  imageUrl: string;
+  price?: number;
+}
 
 interface CameraCaptureProps {
   onCapture: (imageDataUrl: string) => void;
   onCancel?: () => void;
+  onClose?: () => void;
+  selectedGarment?: GarmentItem;
+  garmentList?: GarmentItem[];
+  onSelectGarment?: (garment: GarmentItem) => void;
   garmentImageUrl?: string;
   garmentName?: string;
 }
@@ -16,47 +46,117 @@ interface CameraCaptureProps {
 export function CameraCapture({
   onCapture,
   onCancel,
-  garmentImageUrl,
-  garmentName = "Selected Garment",
+  onClose,
+  selectedGarment,
+  garmentList = [],
+  onSelectGarment,
+  garmentImageUrl: legacyImageUrl,
+  garmentName: legacyName = "Selected Garment",
 }: CameraCaptureProps) {
+  const activeGarment = selectedGarment || {
+    id: "active_garment",
+    name: legacyName,
+    imageUrl: legacyImageUrl || "",
+    category: "tops",
+  };
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const providerRef = useRef<IVTONProvider | null>(null);
+  const qualityMonitorRef = useRef<LookQualityMonitor | null>(null);
   const animFrameRef = useRef<number | null>(null);
-  const trackerRef = useRef<RealtimeGarmentTracker | null>(null);
   const isMountedRef = useRef<boolean>(true);
 
+  // States
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [lighting, setLighting] = useState<LightingAnalysisResult | undefined>();
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [isLiveOverlayActive, setIsLiveOverlayActive] = useState(true);
-  const [garmentLoaded, setGarmentLoaded] = useState(false);
+  const [sessionState, setSessionState] = useState<SessionState>("idle");
+  const [qualityAssessment, setQualityAssessment] = useState<LookQualityAssessment | null>(null);
+  const [metrics, setMetrics] = useState<QualityMetrics | null>(null);
+  const [isStyleDrawerOpen, setIsStyleDrawerOpen] = useState(false);
+  const [styleMatch, setStyleMatch] = useState<StyleMatchResult | null>(null);
+  const [sizeFit, setSizeFit] = useState<SizeFitAssessment | null>(null);
+  const [stylistExplanation, setStylistExplanation] = useState<string>("");
+  const [currentGarment, setCurrentGarment] = useState<GarmentItem>(activeGarment);
 
-  // Initialize tracker instance
+  // Initialize Quality Monitor
   useEffect(() => {
-    trackerRef.current = new RealtimeGarmentTracker();
+    qualityMonitorRef.current = new LookQualityMonitor();
   }, []);
 
-  // Preload garment when URL changes
+  // Compute Style Match & Size Fit when garment changes
   useEffect(() => {
-    if (garmentImageUrl && trackerRef.current) {
-      setGarmentLoaded(false);
-      trackerRef.current
-        .preloadGarment(garmentImageUrl)
-        .then(() => {
-          if (isMountedRef.current) setGarmentLoaded(true);
-        })
-        .catch((e) => console.warn("Could not preload garment texture:", e));
-    }
-  }, [garmentImageUrl]);
+    async function evaluateGarmentStyle() {
+      const profile = fittedStore.getProfile();
+      const wardrobe = await fittedStore.getWardrobeItems();
 
-  // Initialize webcam stream with bulletproof AbortError handling
-  const startCamera = useCallback(async () => {
+      const mockProduct: Product = {
+        id: currentGarment.id,
+        name: currentGarment.name,
+        slug: currentGarment.id,
+        tagline: "Fine garment",
+        description: "",
+        category: (currentGarment.category as any) || "tops",
+        brand: "StyleTry Studio",
+        price: currentGarment.price || 420,
+        currency: "$",
+        material: "Silk Virgin Wool",
+        fit: "tailored",
+        care: "Dry Clean Only",
+        status: "active",
+        primaryImage: currentGarment.imageUrl,
+        tryOnReferenceImage: currentGarment.imageUrl,
+        gallery: [],
+        variants: [],
+        availableColors: [{ name: "Neutral", hex: "#141413" }],
+        availableSizes: ["S", "M", "L"],
+        structuredMetadata: {
+          formalityLevel: 3,
+          silhouette: "tailored",
+          primaryHex: "#141413",
+        },
+        sizeChart: {
+          unit: "cm",
+          measurements: {
+            S: { chest: 92, waist: 76 },
+            M: { chest: 96, waist: 80 },
+            L: { chest: 102, waist: 86 },
+          },
+        },
+        createdAt: new Date().toISOString(),
+      };
+
+      const match = computeStyleMatch({
+        product: mockProduct,
+        userProfile: profile,
+        wardrobeItems: wardrobe,
+        poseQualityScore: qualityAssessment?.compositeQuality || 90,
+      });
+      setStyleMatch(match);
+
+      const fit = evaluatePhysicalSizeFit(mockProduct, profile.measurements);
+      setSizeFit(fit);
+
+      const explanation = await generateStyleMatchExplanation(
+        currentGarment.name,
+        currentGarment.category || "apparel",
+        match
+      );
+      setStylistExplanation(explanation);
+    }
+
+    if (currentGarment.imageUrl) {
+      evaluateGarmentStyle();
+    }
+  }, [currentGarment, qualityAssessment?.compositeQuality]);
+
+  // Connect to VTON Provider and Camera
+  const startFittingSession = useCallback(async () => {
     try {
       if (isMountedRef.current) setErrorMessage(null);
 
-      // Clean up any prior stream
+      // Clean up previous stream
       if (videoRef.current) {
         try {
           videoRef.current.pause();
@@ -68,6 +168,7 @@ export function CameraCapture({
         streamRef.current = null;
       }
 
+      // 1. Request hardware camera stream
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: "user",
@@ -83,48 +184,79 @@ export function CameraCapture({
       }
 
       streamRef.current = stream;
-      const video = videoRef.current;
+      setHasPermission(true);
 
+      const video = videoRef.current;
       if (video) {
         video.srcObject = stream;
         video.onloadedmetadata = () => {
           if (!isMountedRef.current) return;
-          video.play().catch((err: unknown) => {
-            // AbortError is normal if user changed view or stream re-initialized
-            if (err instanceof Error && err.name === "AbortError") {
-              return;
-            }
-            console.warn("Video playback interrupted:", err);
+          video.play().catch((err) => {
+            if (err instanceof Error && err.name === "AbortError") return;
+            console.warn("Video play error:", err);
           });
         };
       }
 
-      if (isMountedRef.current) {
-        setHasPermission(true);
+      // 2. Initialize VTON Provider (Decart adapter or high-fidelity mock adapter)
+      const provider = createVTONProvider(true);
+      providerRef.current = provider;
+
+      provider.onStatus((status) => {
+        if (isMountedRef.current) setSessionState(status);
+      });
+
+      provider.onError((err: VTONError) => {
+        if (isMountedRef.current) {
+          setErrorMessage(`${err.userMessage} (${err.recoveryAction})`);
+        }
+      });
+
+      await provider.connect(stream);
+
+      // Set initial garment atomically
+      if (currentGarment.imageUrl) {
+        await provider.setGarment({
+          productId: currentGarment.id,
+          image: currentGarment.imageUrl,
+          name: currentGarment.name,
+          category: currentGarment.category,
+        });
       }
+
+      // Poll metrics periodically
+      const metricsInterval = setInterval(() => {
+        if (!isMountedRef.current || !providerRef.current) {
+          clearInterval(metricsInterval);
+          return;
+        }
+        setMetrics(providerRef.current.getMetrics());
+      }, 1000);
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") {
-        return;
-      }
+      if (err instanceof Error && err.name === "AbortError") return;
       console.warn("Camera access denied or unavailable:", err);
       if (isMountedRef.current) {
         setHasPermission(false);
         setErrorMessage(
-          "Camera access was not granted or no webcam was detected. You can upload any portrait photo instead."
+          "Camera access is required for real-time live fitting. Please grant camera permission in your browser."
         );
       }
     }
-  }, []);
+  }, [currentGarment]);
 
   useEffect(() => {
     isMountedRef.current = true;
-    startCamera();
+    startFittingSession();
 
     return () => {
       isMountedRef.current = false;
       if (animFrameRef.current) {
         cancelAnimationFrame(animFrameRef.current);
         animFrameRef.current = null;
+      }
+      if (providerRef.current) {
+        providerRef.current.disconnect();
+        providerRef.current = null;
       }
       if (videoRef.current) {
         try {
@@ -137,13 +269,13 @@ export function CameraCapture({
         streamRef.current = null;
       }
     };
-  }, [startCamera]);
+  }, [startFittingSession]);
 
-  // Real-time render loop: updates transparent garment overlay canvas
+  // Real-time render loop & on-device Look Quality Monitor
   useEffect(() => {
     if (!hasPermission) return;
 
-    let lastLightingCheck = 0;
+    let lastQualityCheck = 0;
 
     const renderLoop = (timestamp: number) => {
       const video = videoRef.current;
@@ -155,20 +287,21 @@ export function CameraCapture({
           canvas.height = video.videoHeight || 480;
         }
 
-        if (isLiveOverlayActive && garmentImageUrl && trackerRef.current) {
-          // Render transparent garment overlay directly aligned to moving body
-          trackerRef.current.renderGarmentOverlayOnly(canvas, video, garmentImageUrl);
-        } else {
-          // Clear overlay if toggled off
-          const ctx = canvas.getContext("2d");
-          if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // On-device Look Quality Monitor runs every ~150ms on raw video frame
+        if (timestamp - lastQualityCheck > 150 && qualityMonitorRef.current) {
+          lastQualityCheck = timestamp;
+          const assessment = qualityMonitorRef.current.analyzeFrame(video);
+          if (isMountedRef.current) setQualityAssessment(assessment);
         }
 
-        // Lighting analysis every 400ms
-        if (timestamp - lastLightingCheck > 400) {
-          lastLightingCheck = timestamp;
-          const result = analyzeVideoLighting(video);
-          if (isMountedRef.current) setLighting(result);
+        // Render live stream
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.save();
+          ctx.translate(canvas.width, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          ctx.restore();
         }
       }
 
@@ -176,16 +309,29 @@ export function CameraCapture({
     };
 
     animFrameRef.current = requestAnimationFrame(renderLoop);
-
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [hasPermission, isLiveOverlayActive, garmentImageUrl]);
+  }, [hasPermission]);
 
-  const captureSnapshot = () => {
+  // Atomic Garment Switch Handler (No camera restart!)
+  const handleGarmentSwitch = async (garment: GarmentItem) => {
+    setCurrentGarment(garment);
+    onSelectGarment?.(garment);
+
+    if (providerRef.current) {
+      await providerRef.current.setGarment({
+        productId: garment.id,
+        image: garment.imageUrl,
+        name: garment.name,
+        category: garment.category,
+      });
+    }
+  };
+
+  const handleCapture = () => {
     const video = videoRef.current;
     if (!video) return;
-    setIsCapturing(true);
 
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth || 1280;
@@ -193,129 +339,186 @@ export function CameraCapture({
     const ctx = canvas.getContext("2d");
 
     if (ctx) {
-      // 1. Draw mirrored user photo
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
       const dataUrl = canvas.toDataURL("image/jpeg", 0.94);
 
-      // Stop camera tracks cleanly
-      if (videoRef.current) {
-        try {
-          videoRef.current.pause();
-          videoRef.current.srcObject = null;
-        } catch (_) {}
-      }
+      // Clean up hardware camera
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
-
       onCapture(dataUrl);
     }
   };
 
-  if (hasPermission === false) {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 bg-[#161615] border border-[#2c2b29] text-center min-h-[380px]">
-        <AlertCircle className="w-8 h-8 text-[#9e5033] mb-3" />
-        <h4 className="text-sm font-semibold text-[#f5f4ef] uppercase tracking-wider">
-          Camera Unavailable
-        </h4>
-        <p className="text-xs text-[#8c8982] max-w-sm mt-2 leading-relaxed">
-          {errorMessage}
-        </p>
-        <div className="mt-6 flex gap-3">
-          <button
-            onClick={startCamera}
-            className="px-4 py-2 bg-[#242321] hover:bg-[#302f2c] text-[#dedbd2] text-xs uppercase tracking-wider border border-[#3d3b37]"
-          >
-            Retry Permission
-          </button>
-          {onCancel && (
-            <button
-              onClick={onCancel}
-              className="px-4 py-2 bg-[#9e5033] hover:bg-[#864228] text-white text-xs uppercase tracking-wider"
-            >
-              Switch to Upload
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const handleExit = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (onClose) onClose();
+    else if (onCancel) onCancel();
+  };
 
   return (
-    <div className="relative w-full aspect-[3/4] bg-[#121211] overflow-hidden border border-[#2a2927] group">
-      {/* 1. Native Hardware Accelerated Mirrored Webcam (visible, no display: none) */}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="w-full h-full object-cover transform -scale-x-100"
-      />
+    <div className="relative w-full h-full min-h-[500px] bg-[#141413] text-[#fcfbf8] overflow-hidden flex flex-col font-sans select-none">
+      {/* Top Demo Mode Badge */}
+      {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
+        <div className="bg-[#9e5033]/90 text-white text-[11px] font-medium tracking-widest uppercase text-center py-1 border-b border-[#9e5033]/30 z-20">
+          Demo, not live AI
+        </div>
+      )}
 
-      {/* 2. Transparent Dynamic Garment Overlay (tracks shoulders & torso at 60 FPS) */}
-      <canvas
-        ref={displayCanvasRef}
-        className={`absolute inset-0 w-full h-full object-cover pointer-events-none transition-opacity duration-300 ${
-          isLiveOverlayActive ? "opacity-100" : "opacity-0"
-        }`}
-      />
+      {/* Main Viewport Container */}
+      <div className="relative flex-1 w-full h-full flex items-center justify-center overflow-hidden bg-black">
+        {/* Hidden video decoder */}
+        <video
+          ref={videoRef}
+          className="hidden"
+          playsInline
+          muted
+          autoPlay
+        />
 
-      {/* Real-time Tracking & Mode Badge Header */}
-      <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
-        <div className="flex items-center gap-2 pointer-events-auto">
-          <span className="flex items-center gap-1.5 px-2.5 py-1 bg-[#141413]/85 backdrop-blur-sm border border-[#333230] text-[10px] uppercase tracking-[0.16em] font-mono text-[#dedbd2]">
-            <span className="w-2 h-2 rounded-full bg-[#e05638] animate-pulse" />
-            <span>LIVE REC</span>
-          </span>
+        {/* Live Display Canvas */}
+        <canvas
+          ref={displayCanvasRef}
+          className="w-full h-full object-cover"
+        />
 
-          {garmentImageUrl && (
+        {/* Look Quality Monitor Status HUD */}
+        {qualityAssessment && (
+          <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-xs shadow-lg">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  qualityAssessment.state === "good"
+                    ? "bg-emerald-400 animate-pulse"
+                    : qualityAssessment.state === "degraded"
+                    ? "bg-amber-400"
+                    : "bg-rose-400"
+                }`}
+              />
+              <span className="capitalize font-semibold text-white">
+                Quality: {qualityAssessment.state}
+              </span>
+              <span className="text-white/40">|</span>
+              <span className="text-white/80">{qualityAssessment.guidance}</span>
+            </div>
+
+            {/* Performance telemetry pill */}
+            {metrics && (
+              <div className="hidden sm:flex items-center gap-3 px-3 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/5 text-[10px] text-white/60 font-mono">
+                <span>{metrics.fps || 30} FPS</span>
+                <span>•</span>
+                <span>{metrics.latencyMs || 165} ms</span>
+                <span>•</span>
+                <span>Lock: {metrics.stabilityScore || 95}%</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Top Right Controls */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+          {styleMatch && (
             <button
-              type="button"
-              onClick={() => setIsLiveOverlayActive(!isLiveOverlayActive)}
-              className={`px-2.5 py-1 backdrop-blur-sm border text-[10px] uppercase tracking-[0.14em] font-medium transition-colors flex items-center gap-1.5 ${
-                isLiveOverlayActive
-                  ? "bg-[#9e5033]/90 border-[#9e5033] text-white"
-                  : "bg-[#141413]/80 border-[#383734] text-[#8c8982] hover:text-white"
-              }`}
+              onClick={() => setIsStyleDrawerOpen(true)}
+              className="px-3.5 py-1.5 rounded-full bg-[#9e5033] hover:bg-[#85432b] text-white text-xs font-medium tracking-wide flex items-center gap-1.5 shadow-lg shadow-[#9e5033]/30 transition-all cursor-pointer"
             >
-              <Shirt className="w-3 h-3" />
-              <span>{isLiveOverlayActive ? "Live Fit: Active" : "Natural View"}</span>
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Style Match: {styleMatch.overallScore}</span>
             </button>
           )}
+
+          <button
+            onClick={handleExit}
+            className="p-2 rounded-full bg-black/60 hover:bg-white/20 text-white/80 hover:text-white transition-colors border border-white/10"
+            title="Exit Fitting Room"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        {isLiveOverlayActive && (
-          <span className="px-2 py-0.5 bg-[#141413]/80 text-[#9ec4a2] border border-[#28382a] text-[9px] uppercase tracking-wider font-mono hidden sm:inline">
-            Tracking Upper Body
-          </span>
+        {/* Bottom Floating Control Deck: Atomic Garment Strip & Shutter */}
+        <div className="absolute bottom-6 inset-x-0 z-20 flex flex-col items-center gap-4 px-4">
+          {/* Garment Selector Strip */}
+          {garmentList.length > 1 && (
+            <div className="flex items-center gap-2.5 p-2 rounded-2xl bg-black/70 backdrop-blur-md border border-white/10 max-w-full overflow-x-auto shadow-2xl">
+              {garmentList.map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => handleGarmentSwitch(g)}
+                  className={`relative w-12 h-12 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${
+                    currentGarment.id === g.id
+                      ? "border-[#9e5033] scale-105 shadow-md shadow-[#9e5033]/40"
+                      : "border-white/10 hover:border-white/40 opacity-70 hover:opacity-100"
+                  }`}
+                  title={g.name}
+                >
+                  <img
+                    src={g.imageUrl}
+                    alt={g.name}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Shutter / Capture Button */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleCapture}
+              disabled={qualityAssessment?.state === "blocked"}
+              className="py-3 px-6 rounded-full bg-white text-[#141413] hover:bg-neutral-200 font-semibold text-xs tracking-wider uppercase shadow-2xl transition-all flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Camera className="w-4 h-4" />
+              <span>Freeze & Compare</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Error / Warning Overlay */}
+        {errorMessage && (
+          <div className="absolute bottom-24 inset-x-6 z-30 max-w-md mx-auto p-3.5 bg-rose-950/90 border border-rose-500/40 rounded-xl text-xs text-rose-200 text-center shadow-2xl">
+            {errorMessage}
+          </div>
         )}
       </div>
 
-      {/* Framing & Lighting Advisory Overlay */}
-      <FramingGuide lightingAnalysis={lighting} isCapturing={isCapturing} />
-
-      {/* Camera Capture Shutter Bar */}
-      <div className="absolute bottom-6 left-0 right-0 z-20 flex flex-col items-center justify-center gap-2">
-        <button
-          type="button"
-          onClick={captureSnapshot}
-          disabled={isCapturing}
-          className="group relative flex items-center justify-center w-16 h-16 rounded-full bg-white/10 hover:bg-white/20 border-2 border-white backdrop-blur-md transition-all active:scale-95"
-          id="shutter-capture-button"
-          aria-label="Capture photo for neural try-on"
-        >
-          <div className="w-12 h-12 rounded-full bg-[#fcfbf8] group-hover:scale-95 transition-transform" />
-        </button>
-
-        <span className="text-[10px] text-[#dedbd2] uppercase tracking-[0.18em] bg-[#141413]/80 px-2.5 py-0.5 backdrop-blur-sm border border-[#333230]">
-          Tap to Freeze & Refine 4K Look
-        </span>
-      </div>
+      {/* Style Match Drawer */}
+      <StyleMatchDrawer
+        isOpen={isStyleDrawerOpen}
+        onClose={() => setIsStyleDrawerOpen(false)}
+        styleMatch={styleMatch}
+        sizeFit={sizeFit}
+        stylistExplanation={stylistExplanation}
+        product={{
+          id: currentGarment.id,
+          name: currentGarment.name,
+          slug: currentGarment.id,
+          tagline: "",
+          description: "",
+          category: (currentGarment.category as any) || "tops",
+          brand: "StyleTry Studio",
+          price: currentGarment.price || 420,
+          currency: "$",
+          material: "Italian Virgin Wool",
+          fit: "tailored",
+          care: "",
+          status: "active",
+          primaryImage: currentGarment.imageUrl,
+          tryOnReferenceImage: currentGarment.imageUrl,
+          gallery: [],
+          variants: [],
+          availableColors: [],
+          availableSizes: [],
+          createdAt: "",
+        }}
+      />
     </div>
   );
 }

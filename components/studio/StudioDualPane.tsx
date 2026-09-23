@@ -347,6 +347,24 @@ export function StudioDualPane({
             <CameraCapture
               onCapture={handlePhotoCaptured}
               onCancel={() => setInputMode("upload")}
+              selectedGarment={{
+                id: selectedProduct.id,
+                name: selectedProduct.name,
+                category: selectedProduct.category,
+                imageUrl: selectedProduct.tryOnReferenceImage || selectedProduct.primaryImage,
+                price: selectedProduct.price,
+              }}
+              garmentList={allProducts.map((p) => ({
+                id: p.id,
+                name: p.name,
+                category: p.category,
+                imageUrl: p.tryOnReferenceImage || p.primaryImage,
+                price: p.price,
+              }))}
+              onSelectGarment={(g) => {
+                const found = allProducts.find((p) => p.id === g.id);
+                if (found) setSelectedProduct(found);
+              }}
               garmentImageUrl={selectedProduct.tryOnReferenceImage || selectedProduct.primaryImage}
               garmentName={selectedProduct.name}
             />

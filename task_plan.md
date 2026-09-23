@@ -1,92 +1,86 @@
-# Task Plan — Fitted: Real-Time Virtual Try-On Extension & Interactive Camera
+# Task Plan — StyleTry AI: Embeddable Live AI Fitting Room
 
 ## Objective
-1. Build the complete **Manifest V3 Real-Time Virtual Try-On Browser Extension** with universal product detection, floating Shadow DOM viewfinder widget, Tier 1 real-time live webcam garment tracking & fitting, and Tier 2 photorealistic AI capture.
-2. Upgrade the web application's studio (`/try-on`) with the same **real-time live video outfit fitting** on the laptop webcam, allowing the user to see their face and see the outfit fitted to them as they move, strictly preserving the editorial luxury design ("Don't change the Design of this project").
+Build **StyleTry AI**: an embeddable live AI virtual fitting room for e-commerce (Shopify, WooCommerce, custom sites), sold to merchants and used by customers. Features real-time WebRTC VTON with atomic garment switching, on-device Look Quality Monitor (pose/lighting/blur/occlusion detection), explainable Style Intelligence Engine (deterministic scoring first, LLM for wording only), separate visual fit vs size fit, strict DPDP/GDPR privacy controls, merchant admin benchmarking dashboard, and sandboxed iframe widget with SDK script tag.
 
 ## Phases & Status
 
-- [x] **Phase 1: Project Skeleton & Bespoke Design System**
-  - Initialized Next.js project with TypeScript and Tailwind CSS.
-  - Configured typography (Playfair Display + Plus Jakarta Sans), palette tokens, spacing, and editorial components.
-  - Set up shared types and project layout with header, navigation, and footer.
+- [x] **Phase 1: Project Architecture, Types & Bespoke Brand Identity**
+  - Established "StyleTry AI" brand identity, design tokens, and core TypeScript interfaces.
+  - Defined VTON Provider interface, typed error codes, and session state machine (`idle` → `permission` → `positioning` → `connecting` → `live` → `switching` → `degraded` → `ended/failed`).
 
-- [x] **Phase 2: Working Core Loop on Mock Data**
-  - Seeded luxury fashion products across categories (Outerwear, Tops, Tailoring, Dresses, Knitwear).
-  - Implemented the abstracted AI Try-On engine (`lib/ai/virtual-tryon/`) with demo provider and realistic multi-stage state transitions.
-  - Built the Try-On Studio with photo upload and instant garment transfer rendering.
-  - Verified complete end-to-end loop: Browse → Try → Result → Save.
+- [x] **Phase 2: Database Schema & Multi-Tenant Merchant Model (Supabase)**
+  - Expanded `lib/db/schema.sql` with `merchants`, `merchant_configs`, `saved_looks` (separate from `wardrobe_items`), `analytics_events`, and `merchant_id` across tables with RLS and anonymous session support.
+  - Updated `lib/db/store.ts` to support merchant configuration, session capping, and anonymous guests.
 
-- [x] **Phase 3: Supabase Architecture & Data Wiring**
-  - Created complete Supabase Postgres schema with RLS (`lib/db/schema.sql`).
-  - Created Supabase client with automatic fallback to local persistence when remote keys are absent (`lib/db/store.ts`).
-  - Connected catalog, product detail, studio, and wardrobe views to data layer.
+- [x] **Phase 3: On-Device Look Quality Monitor (Client-Side CV)**
+  - Implemented `lib/cv/look-quality-monitor.ts`: client-side pose/segmentation analyzer without server upload.
+  - Detects: person present, required body region visible, lighting level, motion blur, and occlusions (crossed arms, bags, loose layers).
+  - Emits real-time guidance ("Step back", "Face the light", "Center in frame") and quality state: `good | degraded | blocked`.
 
-- [x] **Phase 4: Live Camera & Advisory Computer Vision**
-  - Implemented HTML5 webcam stream with camera permission handling (`CameraCapture.tsx`).
-  - Built editorial framing guide overlay with head/shoulder silhouette guidelines (`FramingGuide.tsx`).
-  - Added real-time canvas-based lighting and positioning analysis ("Good lighting", "Low light detected", "Ready") (`lighting-detector.ts`).
-  - Seamless toggle between Live Camera and File Upload.
+- [x] **Phase 4: Real-Time VTON Provider Architecture & Adapters**
+  - Implemented `lib/vton/provider.ts` with `connect(stream)`, `setGarment()`, `disconnect()`, `onStatus()`, `onError()`.
+  - Implemented `lib/vton/decart-adapter.ts` (WebRTC stream adapter, data channel for atomic garment switch).
+  - Implemented `lib/vton/mock-adapter.ts` (WebRTC/canvas stream adapter with simulated latency, frame rates, and realistic synthesis for zero-cost testing and development).
+  - Implemented state machine with reconnect, timeout handling, and typed error handling.
 
-- [x] **Phase 5: Real AI Provider Integration & API Route**
-  - Implemented Replicate provider for IDM-VTON / virtual try-on (`replicate.ts`) in server route handler `/api/try-on`.
-  - Validated image format, size, and category server-side with IP rate limiting.
-  - Kept secrets strictly on server side.
+- [x] **Phase 5: Garment Intake & Image Validation Pipeline**
+  - Implemented `lib/intake/validator.ts` to validate uploaded garments: resolution (>= 1024x1024), clean/isolated background, single garment, front view check.
+  - Rejects/flags unsupported categories; prioritizes merchant structured metadata over AI guesses.
+  - Built merchant intake UI (`/admin/intake`).
 
-- [x] **Phase 6: Wardrobe, History, Product-Switching & Before/After Slider**
-  - Implemented Before/After interactive split slider on result canvas (`BeforeAfterSlider.tsx`).
-  - Built garment strip inside the Studio to switch apparel items without re-uploading user photo (`GarmentStrip.tsx`).
-  - Built `/wardrobe` and `/history` pages with download, share, and delete actions.
+- [x] **Phase 6: Style Intelligence Engine (Deterministic Scoring + Configurable Rule Tables)**
+  - Published rule tables: LAB color distance (Delta E), formality matrix, silhouette-to-fit map.
+  - Deterministic scoring across 6 dimensions: style, color, fit preference, silhouette, occasion, wardrobe.
+  - Missing data handler (unknown dimensions, renormalized weights, reduced confidence).
+  - Deterministic confidence calculation: $f(\text{data completeness}, \text{pose quality})$.
+  - Stored structured evidence in `analysis_json`.
 
-- [x] **Phase 7: Privacy, Error Handling & Data Management**
-  - Implemented "Delete my try-on data" action in profile and server endpoint (`/api/user/delete-data`).
-  - Added friendly, plain-language error boundary and recovery states (camera denied, invalid upload, provider timeout).
-  - Enforced server-side rate-limiting and validation.
+- [x] **Phase 7: LLM Gateway & Explainable Style Match**
+  - Implemented `lib/style-engine/llm-gateway.ts` (configurable provider gateway: Gemini/OpenAI/Mock).
+  - Strict guardrails: LLM never receives video frames and never modifies numerical scores.
+  - Labeled output "Style Match" (never "objective").
 
-- [x] **Phase 8: Editorial Visual Polish & Responsive Verification**
-  - Audited against Section 3 checklist (no AI clichés, proper typographic hierarchy, luxurious editorial spacing).
-  - Verified layout responsiveness across desktop, tablet, and mobile.
-  - Verified zero dead buttons or broken links across all 13 routes and endpoints.
+- [x] **Phase 8: Fit Architecture: Visual Fit vs. Physical Size Fit**
+  - Built `lib/style-engine/fit-calculator.ts`: separates visual try-on from size recommendation.
+  - Size fit requires merchant size chart + user measurements; otherwise explicitly displays: *"Visual try-on cannot guarantee physical sizing."*
 
-- [x] **Phase 9: Real-Time Video Garment Overlay Engine (Tier 1 Web App & Extension Core)**
-  - Built `lib/cv/realtime-garment-tracker.ts`: client-side upper-body/shoulder tracking and adaptive garment warping with EMA smoothing.
-  - Upgraded `CameraCapture.tsx`: user sees their face clearly on their laptop webcam with the garment fitted over their shoulders and moving with their body live at 30-60 FPS!
-  - Added live toggle ("Live Fit: Active" vs "Natural View") and instant garment swap sync from `GarmentStrip`.
+- [x] **Phase 9: Safety, Ethics & DPDP/GDPR Compliance**
+  - Implemented informed consent modal explaining data processors and real-time streaming rules.
+  - Enforced neutral language: zero attractiveness, weight, body, or ethnicity inferences.
+  - Camera terminates immediately on session exit; zero raw video stored.
+  - Built "Delete my try-on data" and "Delete my style profile" endpoints and user controls.
 
-- [x] **Phase 10: Manifest V3 Browser Extension Skeleton & Build Setup**
-  - Setup `extension/` directory with `manifest.json` (Manifest V3), TypeScript, and custom Node bundler `extension/build.js`.
-  - Configured permissions (`storage`, `contextMenus`, `activeTab`), host permissions (`<all_urls>`), and action.
-  - Generated PNG icons at 16x16, 48x48, and 128x128 in `extension/icons/`.
+- [x] **Phase 10: Sandboxed Embeddable Widget & SDK**
+  - Built iframe widget (`/widget/embed`) with `allow="camera"`, origin verification, and bidirectional `postMessage` protocol.
+  - Built `public/widget/styletry.js` script tag loader supporting Shopify, WooCommerce, and custom stores.
+  - Built interactive demo store (`/demo-store`) demonstrating real merchant integration.
 
-- [x] **Phase 11: Universal Product Detection & Fallback Mode (`content-script.ts`)**
-  - Implemented heuristic detector scanning for e-commerce products (`<img>` inside cards, near prices, schema.org `Product`).
-  - Injected discreet editorial "Try-On" hover badge onto detected product images.
-  - Setup `MutationObserver` for infinite scroll / SPA sites.
-  - Added manual fallback mode: drag any image onto the widget or right-click → "Try this on in Fitted".
+- [x] **Phase 11: Merchant Admin & Quality Benchmarking Dashboard**
+  - Built `/admin` and `/admin/benchmarks` dashboards showing live quality metrics: Time-to-first-render, end-to-end latency, FPS, garment stability, and reconnect time.
+  - Configured session caps, rate limits, and cost controls.
+  - Rule table inspector for merchant brand customization.
 
-- [x] **Phase 12: Floating Shadow DOM Viewfinder Widget**
-  - Created isolated Shadow DOM container to prevent host-page CSS bleeding.
-  - Implemented draggable header and resizable viewfinder container.
-  - Built viewfinder equipment chrome: title bar, minimize, live recording indicator dot, and icon controls.
-  - Embedded live webcam feed with Tier 1 real-time garment warping and positioning guidance.
+- [x] **Phase 12: Cost Controls, Session Limits & Error Recovery**
+  - Implemented per-merchant and per-user session limits, max session duration, idle auto-disconnect (after 90s idle), and rate limiting.
+  - Comprehensive user-facing error recovery for all 11 error codes (camera denied, no person, low light, provider outage, etc.).
 
-- [x] **Phase 13: Extension Tier 2 Capture Pipeline & Companion App Deep Linking**
-  - Connected extension "Capture AI Fit" action to the backend `/api/try-on` endpoint.
-  - Displayed captured result inside the widget with save and download actions.
-  - Added "Save to Wardrobe" syncing to companion app, with deep-link button opening `http://localhost:3000/wardrobe`.
+- [x] **Phase 13: Core Live Fitting Room Studio (`/try-on`)**
+  - Modernized Studio interface integrating Look Quality Monitor HUD, real-time VTON viewport, atomic garment strip, Style Match analysis drawer, and Size Fit advisor.
+  - Supported `NEXT_PUBLIC_DEMO_MODE` banner ("Demo, not live AI") when active.
 
-- [x] **Phase 15: Identity-Preserving Generation Pipeline & Reference Result Screen**
-  - Update `lib/ai/virtual-tryon/types.ts` with `personMask`, `poseKeypoints`, and first-class `identityMatchScore`.
-  - Create `lib/cv/segmentation-mask.ts` for automated clothing-region mask extraction and pose landmark detection.
-  - Implement `lib/ai/virtual-tryon/identity.ts` for automated face-similarity verification and gating.
-  - Implement `lib/ai/virtual-tryon/idm-vton.ts` and update `demo.ts` for mask-conditioned garment transfer.
-  - Add pre-capture input validation in `CameraCapture.tsx` (lighting, face framing, angle).
-  - Update `BeforeAfterSlider.tsx` and `StudioDualPane.tsx` to match the exact reference screenshot (full-bleed, dark pills, 1:1 drag slider, `HOLD TO VIEW ORIGINAL`, auto-fading `DRAG SLIDER TO COMPARE`).
-  - Verify complete pipeline with identity check threshold enforcement.
+- [x] **Phase 14: Testing and Benchmarks Gate**
+  - Unit tests for deterministic style scoring, confidence calculation, and rule tables (`npm test`).
+  - Integration tests for VTON Provider interface, mock adapter, and atomic switching.
+  - Playwright E2E test suite with `--use-fake-device-for-media-stream` (`tests/e2e/fitting-room.spec.ts`).
+  - Concurrent session load test script (`npm run test:load`).
+  - Mobile device matrix documentation (`tests/DEVICE_MATRIX.md`).
 
-## Completion Criteria
-1. Full user journey verified: Browse catalog → Open product → Tap "Try It On" → See face on live camera with garment fitted and moving in real time → Freeze/Capture → See photorealistic render → Compare with slider → Switch garment instantly → Save to wardrobe → Manage in history → Delete try-on data. [VERIFIED]
-2. Manifest V3 Browser Extension compiled into `extension/dist/` ready for loading in Chrome, complete with universal product detection, floating Shadow DOM widget, and Tier 1 live fitting. [VERIFIED]
-3. 100% adherence to editorial luxury design without any changes to the visual theme. [VERIFIED]
-4. Identity-preserving generation pipeline: Mask-conditioned synthesis preserves user's face, hair, and posture pixel-for-pixel; automated `identityMatchScore` gate ensures no mismatched faces are shown; result screen matches reference design. [IN PROGRESS]
+- [x] **Phase 15: Production Build, Polishing & Verification**
+  - Full TypeScript and Next.js production build verification (`npm run build`).
+  - End-to-end HTTP 200 verification of merchant embed, customer fitting room, style match, and admin dashboard.
 
+## Key Decisions & Constraints
+- **VTON vs Style Intelligence separation**: Video goes strictly to VTON provider (Decart / Mock); LLM receives only structured JSON metadata and never sees video.
+- **Look Quality Monitor**: Completely client-side CV running in requestAnimationFrame on HTML5 canvas; no frames uploaded for quality analysis.
+- **Fit distinction**: Size recommendations strictly segregated from visual rendering.

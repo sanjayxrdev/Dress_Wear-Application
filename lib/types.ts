@@ -24,8 +24,14 @@ export interface ProductImage {
   sortOrder: number;
 }
 
+export interface ProductSizeChart {
+  unit: "cm" | "in";
+  measurements: Record<string, { chest?: number; waist?: number; hips?: number; length?: number }>;
+}
+
 export interface Product {
   id: string;
+  merchantId?: string;
   name: string;
   slug: string;
   tagline: string;
@@ -45,11 +51,21 @@ export interface Product {
   variants: ProductVariant[];
   availableColors: { name: string; hex: string }[];
   availableSizes: string[];
+  structuredMetadata?: {
+    formalityLevel?: number; // 1-5 (Casual to Black Tie)
+    silhouette?: "slim" | "tailored" | "relaxed" | "oversized";
+    primaryHex?: string;
+    occasion?: string[];
+    careComplexity?: "easy" | "moderate" | "delicate";
+  };
+  sizeChart?: ProductSizeChart;
   createdAt: string;
 }
 
 export type TryOnStage =
   | "idle"
+  | "permission"
+  | "positioning"
   | "analyzing"
   | "segmenting"
   | "synthesizing"
@@ -59,7 +75,9 @@ export type TryOnStage =
 
 export interface TryOnSession {
   id: string;
+  merchantId?: string;
   userId?: string;
+  anonymousSessionId?: string;
   productId: string;
   productName: string;
   productBrand: string;
@@ -69,16 +87,21 @@ export interface TryOnSession {
   status: "queued" | "processing" | "completed" | "failed";
   stage?: TryOnStage;
   stageMessage?: string;
-  provider: "demo" | "replicate";
+  provider: "demo" | "replicate" | "decart" | "mock";
   model: string;
   processingTimeMs?: number;
   errorMessage?: string;
+  styleMatchScore?: number;
+  confidenceScore?: number;
+  analysisJson?: Record<string, unknown>;
   createdAt: string;
 }
 
 export interface SavedLook {
   id: string;
-  userId: string;
+  merchantId?: string;
+  userId?: string;
+  anonymousSessionId?: string;
   sessionId: string;
   productId: string;
   productName: string;
@@ -87,8 +110,29 @@ export interface SavedLook {
   category: GarmentCategory;
   inputImageUrl: string;
   resultImageUrl: string;
+  styleMatchScore?: number;
+  analysisJson?: Record<string, unknown>;
   notes?: string;
   createdAt: string;
+}
+
+export interface WardrobeItem {
+  id: string;
+  userId: string;
+  name: string;
+  category: GarmentCategory;
+  colorHex?: string;
+  imageUrl: string;
+  formalityLevel?: number;
+  createdAt: string;
+}
+
+export interface UserMeasurements {
+  chest?: number; // cm
+  waist?: number; // cm
+  hips?: number; // cm
+  height?: number; // cm
+  unit?: "cm" | "in";
 }
 
 export interface UserProfile {
@@ -97,6 +141,58 @@ export interface UserProfile {
   name: string;
   fitPreference: "slim" | "tailored" | "relaxed" | "oversized";
   preferredSize: string;
+  measurements?: UserMeasurements;
   notificationsEnabled: boolean;
   tryOnDataRetentionDays: number;
+}
+
+export interface Merchant {
+  id: string;
+  name: string;
+  slug: string;
+  apiKey: string;
+  allowedOrigins: string[];
+  plan: "starter" | "growth" | "enterprise";
+  monthlySessionLimit: number;
+  maxSessionDurationSec: number;
+  idleTimeoutSec: number;
+  rateLimitPerMinute: number;
+  createdAt: string;
+}
+
+export interface MerchantConfig {
+  merchantId: string;
+  brandName: string;
+  brandAccentColor: string;
+  buttonLabel: string;
+  qualityTier: "low_latency" | "balanced" | "ultra_hd";
+  ruleOverrides: Record<string, unknown>;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface AnalyticsEvent {
+  id?: number;
+  merchantId: string;
+  sessionId?: string;
+  eventType: string;
+  ttfrMs?: number;
+  latencyMs?: number;
+  fps?: number;
+  stabilityScore?: number;
+  reconnectCount?: number;
+  deviceType?: string;
+  browser?: string;
+  metadata?: Record<string, unknown>;
+  createdAt?: string;
+}
+
+export interface CustomerFeedback {
+  id?: number;
+  merchantId: string;
+  sessionId?: string;
+  rating: number; // 1-5
+  fitAccuracy?: string;
+  comments?: string;
+  createdAt?: string;
 }

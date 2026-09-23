@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Sparkles, ShoppingBag, Bookmark, History, User, Menu, X } from "lucide-react";
+import { Sparkles, ShoppingBag, Bookmark, History, User, Menu, X, Store, Gauge } from "lucide-react";
 import { fittedStore } from "@/lib/db/store";
 
 export function Navbar() {
@@ -19,24 +19,26 @@ export function Navbar() {
     updateCount();
 
     const handleUpdate = () => updateCount();
-    window.addEventListener("fitted-wardrobe-updated", handleUpdate);
-    return () => window.removeEventListener("fitted-wardrobe-updated", handleUpdate);
+    window.addEventListener("styletry-saved-looks-updated", handleUpdate);
+    return () => window.removeEventListener("styletry-saved-looks-updated", handleUpdate);
   }, []);
 
   const navLinks = [
-    { href: "/shop", label: "Collection" },
-    { href: "/try-on", label: "Studio", highlight: true },
+    { href: "/shop", label: "Catalog" },
+    { href: "/try-on", label: "Fitting Room", highlight: true },
+    { href: "/demo-store", label: "Storefront Demo" },
+    { href: "/admin", label: "Merchant Admin" },
     { href: "/wardrobe", label: "Wardrobe", badge: wardrobeCount > 0 ? wardrobeCount : undefined },
     { href: "/history", label: "Sessions" },
   ];
 
-  const isStudioRoute = pathname.startsWith("/try-on");
+  const isStudioRoute = pathname.startsWith("/try-on") || pathname.startsWith("/admin");
 
   return (
     <header
       className={`sticky top-0 z-40 transition-colors duration-300 border-b ${
         isStudioRoute
-          ? "bg-[#121211]/95 text-[#f5f4ef] border-[#262523]"
+          ? "bg-[#141413]/95 text-[#fcfbf8] border-white/10"
           : "bg-[#fcfbf8]/95 text-[#141413] border-[#e8e4da]"
       } backdrop-blur-md`}
     >
@@ -48,25 +50,27 @@ export function Navbar() {
             className="group flex flex-col items-start focus:outline-none"
             id="nav-logo"
           >
+            <div className="flex items-center gap-2">
+              <span
+                className={`font-serif text-2xl sm:text-3xl font-medium tracking-tight transition-transform duration-300 group-hover:scale-[1.01] ${
+                  isStudioRoute ? "text-[#fcfbf8]" : "text-[#141413]"
+                }`}
+              >
+                StyleTry <span className="text-[#9e5033]">AI</span>
+              </span>
+            </div>
             <span
-              className={`font-editorial text-2xl sm:text-3xl font-normal tracking-tight transition-transform duration-300 group-hover:scale-[1.02] ${
-                isStudioRoute ? "text-[#fcfbf8]" : "text-[#141413]"
+              className={`text-[9px] uppercase tracking-[0.26em] font-sans font-medium -mt-1 ${
+                isStudioRoute ? "text-white/40" : "text-[#7a7770]"
               }`}
             >
-              FITTED
-            </span>
-            <span
-              className={`text-[9px] uppercase tracking-[0.28em] font-sans font-medium -mt-1 ${
-                isStudioRoute ? "text-[#8c8982]" : "text-[#7a7770]"
-              }`}
-            >
-              Virtual Try-On
+              Live E-Commerce Fitting Room
             </span>
           </Link>
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-8 text-xs font-medium tracking-[0.14em] uppercase">
+        <nav className="hidden lg:flex items-center space-x-7 text-xs font-medium tracking-[0.14em] uppercase">
           {navLinks.map((link) => {
             const isActive =
               link.href === "/shop"
@@ -83,7 +87,7 @@ export function Navbar() {
                       ? "text-[#ffffff] font-semibold"
                       : "text-[#141413] font-semibold"
                     : isStudioRoute
-                    ? "text-[#a6a39b] hover:text-[#f5f4ef]"
+                    ? "text-white/60 hover:text-white"
                     : "text-[#5c5a55] hover:text-[#141413]"
                 }`}
               >
@@ -115,14 +119,10 @@ export function Navbar() {
         <div className="flex items-center space-x-4">
           <Link
             href="/try-on"
-            className={`hidden sm:inline-flex items-center justify-center px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] transition-all duration-200 border ${
-              isStudioRoute
-                ? "border-[#9e5033] bg-[#9e5033] text-white hover:bg-[#864228]"
-                : "border-[#141413] bg-[#141413] text-white hover:bg-[#2c2b29]"
-            }`}
+            className="hidden sm:inline-flex items-center justify-center px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] transition-all duration-200 bg-[#9e5033] hover:bg-[#864228] text-white rounded-lg shadow-sm"
             id="nav-try-on-cta"
           >
-            Launch Studio
+            Launch Fitting Room
           </Link>
 
           <Link
@@ -130,7 +130,7 @@ export function Navbar() {
             aria-label="Profile & Privacy"
             className={`p-2 transition-colors duration-150 ${
               isStudioRoute
-                ? "text-[#a6a39b] hover:text-white"
+                ? "text-white/60 hover:text-white"
                 : "text-[#5c5a55] hover:text-[#141413]"
             }`}
           >
@@ -140,7 +140,7 @@ export function Navbar() {
           {/* Mobile menu toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-current"
+            className="lg:hidden p-2 text-current"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -151,8 +151,8 @@ export function Navbar() {
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div
-          className={`md:hidden border-t px-6 py-6 space-y-4 ${
-            isStudioRoute ? "bg-[#141413] border-[#2a2927]" : "bg-[#fcfbf8] border-[#e6e2d8]"
+          className={`lg:hidden border-t px-6 py-6 space-y-4 ${
+            isStudioRoute ? "bg-[#141413] border-white/10" : "bg-[#fcfbf8] border-[#e6e2d8]"
           }`}
         >
           {navLinks.map((link) => (
@@ -174,9 +174,9 @@ export function Navbar() {
             <Link
               href="/try-on"
               onClick={() => setMobileMenuOpen(false)}
-              className="block w-full text-center py-3 bg-[#9e5033] text-white text-xs uppercase tracking-widest font-semibold"
+              className="block w-full text-center py-3 bg-[#9e5033] text-white text-xs uppercase tracking-widest font-semibold rounded-lg"
             >
-              Launch Try-On Studio
+              Launch Fitting Room
             </Link>
           </div>
         </div>
