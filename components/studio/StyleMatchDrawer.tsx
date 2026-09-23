@@ -4,14 +4,9 @@ import React, { useState } from 'react';
 import {
   Sparkles,
   ShieldAlert,
-  Info,
   ChevronRight,
   X,
-  Palette,
   Scissors,
-  Calendar,
-  Layers,
-  HelpCircle,
 } from 'lucide-react';
 import { StyleMatchResult } from '@/lib/style-engine/scorer';
 import { SizeFitAssessment } from '@/lib/style-engine/fit-calculator';

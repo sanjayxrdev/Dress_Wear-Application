@@ -4,8 +4,7 @@ import React, { useState } from 'react';
 import { Product } from '@/lib/types';
 import { LiveARFittingRoom } from './LiveARFittingRoom';
 import { StudioDualPane } from './StudioDualPane';
-import { Sparkles, Camera, Sliders } from 'lucide-react';
-import Link from 'next/link';
+import { Camera, Sliders } from 'lucide-react';
 
 interface TryOnClientViewProps {
   initialProduct: Product;
@@ -17,7 +16,7 @@ export function TryOnClientView({
   allProducts,
 }: TryOnClientViewProps) {
   const [viewMode, setViewMode] = useState<'live_ar' | 'snapshot_studio'>('live_ar');
-  const [selectedProduct, setSelectedProduct] = useState<Product>(initialProduct);
+  const [selectedProduct] = useState<Product>(initialProduct);
 
   return (
     <div className="flex-1 flex flex-col relative w-full h-[calc(100vh-4.5rem)] bg-[#141413] text-[#fcfbf8] overflow-hidden">

@@ -1,6 +1,6 @@
 import { BaseVTONProvider } from './provider';
 import { SessionStateMachine } from './state-machine';
-import { GarmentPayload, QualityMetrics, SessionState, VTONError, VTONErrorCode } from './types';
+import { GarmentPayload, SessionState, VTONError, VTONErrorCode } from './types';
 
 export class MockVTONProvider extends BaseVTONProvider {
   private inputStream: MediaStream | null = null;
@@ -56,8 +56,11 @@ export class MockVTONProvider extends BaseVTONProvider {
       this.ctx = this.canvas.getContext('2d', { alpha: false });
 
       // Generate MediaStream from the simulated VTON canvas at 30 FPS
-      if (typeof (this.canvas as any).captureStream === 'function') {
-        this.outputStream = (this.canvas as any).captureStream(30);
+      const canvasWithStream = this.canvas as HTMLCanvasElement & {
+        captureStream?: (fps?: number) => MediaStream;
+      };
+      if (typeof canvasWithStream.captureStream === 'function') {
+        this.outputStream = canvasWithStream.captureStream(30);
       } else {
         // Fallback for environments lacking captureStream
         this.outputStream = stream;
@@ -75,7 +78,7 @@ export class MockVTONProvider extends BaseVTONProvider {
 
       this.stateMachine.transitionTo('live');
       return this.outputStream || stream;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn('MockVTONProvider connect fallback:', err);
       this.stateMachine.transitionTo('live');
       return stream;

@@ -81,7 +81,7 @@ export async function validateGarmentImage(
       const ctx = canvas.getContext('2d');
 
       let backgroundClean = true;
-      let singleGarment = true;
+      const singleGarment = true;
       let frontView = true;
 
       if (ctx) {

@@ -117,7 +117,6 @@
         closeFittingRoom();
         break;
       case 'STYLETRY_ADD_TO_CART':
-        console.log('[StyleTry AI] Add to cart received from fitting room:', data.product);
         window.dispatchEvent(
           new CustomEvent('styletry:add-to-cart', { detail: data.product })
         );

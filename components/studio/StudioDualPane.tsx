@@ -13,8 +13,6 @@ import { synthesizePhotorealisticTryOn } from "@/lib/cv/photorealistic-composite
 import { generateClothingSegmentationMask } from "@/lib/cv/segmentation-mask";
 import { verifySubjectIdentity } from "@/lib/ai/virtual-tryon/identity";
 import {
-  Camera,
-  Upload,
   Bookmark,
   Download,
   Share2,
@@ -61,9 +59,11 @@ export function StudioDualPane({
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
 
   // Sync selectedProduct if initialProduct changes
-  useEffect(() => {
+  const [prevInitialProduct, setPrevInitialProduct] = useState(initialProduct);
+  if (initialProduct !== prevInitialProduct) {
+    setPrevInitialProduct(initialProduct);
     setSelectedProduct(initialProduct);
-  }, [initialProduct]);
+  }
 
   // Execute Virtual Try-On flow
   // Identity verification states

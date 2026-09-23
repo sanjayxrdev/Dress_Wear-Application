@@ -57,8 +57,8 @@ export class DecartVTONProvider extends BaseVTONProvider {
       this.peerConnection.ontrack = (event) => {
         if (event.streams && event.streams[0]) {
           this.remoteStream = event.streams[0];
-        } else {
-          event.track && this.remoteStream?.addTrack(event.track);
+        } else if (event.track) {
+          this.remoteStream?.addTrack(event.track);
         }
 
         const ttfr = Date.now() - this.connectTimestamp;
@@ -145,9 +145,10 @@ export class DecartVTONProvider extends BaseVTONProvider {
       }
 
       return this.remoteStream;
-    } catch (err: any) {
-      console.warn('Decart WebRTC connection failed, falling back to local pipeline:', err.message);
-      this.emitError('PROVIDER_OUTAGE', err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn('Decart WebRTC connection failed, falling back to local pipeline:', message);
+      this.emitError('PROVIDER_OUTAGE', message);
       this.stateMachine.transitionTo('degraded');
       return stream;
     }
