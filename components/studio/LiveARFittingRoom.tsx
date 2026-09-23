@@ -403,6 +403,20 @@ export function LiveARFittingRoom({
     onClose();
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isStyleAdvisorOpen) {
+          setIsStyleAdvisorOpen(false);
+        } else {
+          handleClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isStyleAdvisorOpen]);
+
   return (
     <div
       className={`fixed z-50 transition-all duration-300 font-sans select-none shadow-2xl ${
@@ -438,8 +452,9 @@ export function LiveARFittingRoom({
             onClick={() =>
               setMode(mode === 'on_device_ar' ? 'photoreal_vton' : 'on_device_ar')
             }
-            className="px-2.5 py-1 rounded-full text-[10px] uppercase font-semibold tracking-wider border border-white/10 bg-white/5 hover:bg-white/10 transition-colors flex items-center gap-1"
+            className="px-2.5 py-1 rounded-full text-[10px] uppercase font-semibold tracking-wider border border-white/10 bg-white/5 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9e5033] transition-colors flex items-center gap-1"
             title="Toggle between On-Device WebGL AR and Cloud Photoreal Mode"
+            aria-label="Toggle between On-Device WebGL AR and Cloud Photoreal Mode"
           >
             <Zap className={`w-3 h-3 ${mode === 'on_device_ar' ? 'text-emerald-400' : 'text-purple-400'}`} />
             <span>{mode === 'on_device_ar' ? 'On-Device AR' : 'Photoreal'}</span>
@@ -448,8 +463,9 @@ export function LiveARFittingRoom({
           {isFloating && (
             <button
               onClick={() => setIsMinimized(!isMinimized)}
-              className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9e5033] transition-colors"
               title={isMinimized ? 'Expand' : 'Minimize'}
+              aria-label={isMinimized ? 'Expand Fitting Room' : 'Minimize Fitting Room'}
             >
               {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
             </button>
@@ -457,7 +473,7 @@ export function LiveARFittingRoom({
 
           <button
             onClick={handleClose}
-            className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-rose-500/20 hover:text-rose-400 transition-colors"
+            className="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-rose-500/20 hover:text-rose-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9e5033] transition-colors"
             title="Exit Fitting Room"
             aria-label="Exit Fitting Room"
           >
@@ -616,8 +632,9 @@ export function LiveARFittingRoom({
             <div className="flex items-center gap-3 w-full max-w-md justify-between bg-black/60 backdrop-blur-md p-2 rounded-2xl border border-white/10">
               <button
                 onClick={handleSnapshot}
-                className="p-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+                className="p-3 rounded-xl bg-white/10 hover:bg-white/20 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9e5033] transition-colors"
                 title="Snapshot (Save Look)"
+                aria-label="Capture Snapshot and Save Look"
               >
                 <Camera className="w-4 h-4" />
               </button>
@@ -627,11 +644,12 @@ export function LiveARFittingRoom({
                   <button
                     key={s}
                     onClick={() => setSelectedSize(s)}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9e5033] ${
                       selectedSize === s
                         ? 'bg-white text-black'
                         : 'text-white/60 hover:text-white'
                     }`}
+                    aria-label={`Select size ${s}`}
                   >
                     {s}
                   </button>
@@ -644,7 +662,8 @@ export function LiveARFittingRoom({
                   setSnapshotToast(`Added to Bag (Size ${selectedSize})`);
                   setTimeout(() => setSnapshotToast(null), 3000);
                 }}
-                className="py-2.5 px-4 rounded-xl bg-[#9e5033] hover:bg-[#85432b] text-white text-xs font-semibold tracking-wide flex items-center gap-1.5 shadow-md shadow-[#9e5033]/30 transition-all"
+                className="py-2.5 px-4 rounded-xl bg-[#9e5033] hover:bg-[#85432b] text-white text-xs font-semibold tracking-wide flex items-center gap-1.5 shadow-md shadow-[#9e5033]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9e5033] transition-all"
+                aria-label={`Add ${selectedProduct.name} to bag for $${selectedProduct.price}`}
               >
                 <ShoppingBag className="w-3.5 h-3.5" />
                 <span>Add to Bag • ${selectedProduct.price}</span>

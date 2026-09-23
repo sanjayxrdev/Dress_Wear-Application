@@ -18,14 +18,30 @@ export function ConsentModal({
 }: ConsentModalProps) {
   const [acknowledged, setAcknowledged] = useState(false);
 
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onDecline();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onDecline]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="consent-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+    >
       <div className="relative w-full max-w-lg bg-[#141413] border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl text-white">
         <button
           onClick={onDecline}
-          className="absolute top-5 right-5 p-1.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+          className="absolute top-5 right-5 p-1.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9e5033] transition-colors"
           aria-label="Close"
         >
           <X className="w-5 h-5" />
@@ -36,7 +52,7 @@ export function ConsentModal({
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-xl font-serif tracking-tight text-[#fcfbf8]">
+            <h2 id="consent-modal-title" className="text-xl font-serif tracking-tight text-[#fcfbf8]">
               Camera Privacy & Fitting Consent
             </h2>
             <p className="text-xs text-white/50 tracking-wide uppercase">
@@ -88,14 +104,14 @@ export function ConsentModal({
         <div className="flex items-center gap-3">
           <button
             onClick={onDecline}
-            className="flex-1 py-3 px-4 rounded-xl border border-white/20 text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-medium"
+            className="flex-1 py-3 px-4 rounded-xl border border-white/20 text-white/70 hover:text-white hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9e5033] transition-all text-sm font-medium"
           >
             Cancel
           </button>
           <button
             onClick={onConsent}
             disabled={!acknowledged}
-            className="flex-1 py-3 px-4 rounded-xl bg-[#9e5033] hover:bg-[#85432b] text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all text-sm font-medium flex items-center justify-center gap-2 shadow-lg shadow-[#9e5033]/25"
+            className="flex-1 py-3 px-4 rounded-xl bg-[#9e5033] hover:bg-[#85432b] text-white disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9e5033] transition-all text-sm font-medium flex items-center justify-center gap-2 shadow-lg shadow-[#9e5033]/25"
           >
             <CheckCircle2 className="w-4 h-4" />
             Start Fitting Room
