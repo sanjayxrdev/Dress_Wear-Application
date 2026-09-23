@@ -9,8 +9,8 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col bg-[#fcfbf8]">
-      {/* Editorial Hero Section */}
-      <section className="relative min-h-[85vh] flex flex-col justify-between border-b border-[#e8e4da] px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
+      {/* 1. Editorial Hero Section */}
+      <section className="relative min-h-[80vh] flex flex-col justify-center border-b border-[#e8e4da] px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
         <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center flex-1">
           {/* Hero Typography & Intentional Asymmetry */}
           <div className="lg:col-span-7 space-y-8 text-left">
@@ -69,9 +69,11 @@ export default async function HomePage() {
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Minimal Bottom Editorial Manifesto Bar */}
-        <div className="max-w-7xl mx-auto w-full pt-12 border-t border-[#e8e4da] grid grid-cols-2 md:grid-cols-4 gap-6 text-[11px] uppercase tracking-[0.16em] text-[#7d7a73]">
+      {/* 2. Minimal Editorial Manifesto & Core Principles Bar */}
+      <section className="border-b border-[#e8e4da] bg-[#f7f5ee] py-6 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto w-full grid grid-cols-2 md:grid-cols-4 gap-6 text-[11px] uppercase tracking-[0.16em] text-[#7d7a73]">
           <div>1. ZERO PERMANENT WEBCAM STORAGE</div>
           <div>2. NEURAL DRAPE & FOLD ALIGNMENT</div>
           <div>3. SWAP LOOKS WITHOUT RESTART</div>
@@ -79,7 +81,35 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Honest 3-Step Process (No generic 3-in-a-circle icon grids) */}
+      {/* 3. Featured Collection Showcase (Immediate Product Engagement) */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full border-b border-[#e8e4da]">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
+          <div>
+            <span className="text-xs uppercase tracking-[0.2em] text-[#9e5033] font-medium block">
+              Curated Garments
+            </span>
+            <h2 className="font-editorial text-3xl sm:text-4xl text-[#141413] mt-2 font-normal">
+              Available for immediate try-on.
+            </h2>
+          </div>
+
+          <Link
+            href="/shop"
+            className="text-xs uppercase tracking-[0.14em] font-medium text-[#141413] hover:text-[#9e5033] flex items-center gap-1 transition-colors"
+          >
+            <span>View Full Catalog ({products.length})</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {showcaseProducts.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      </section>
+
+      {/* 4. Honest 3-Step Process (How The Studio Works) */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full border-b border-[#e8e4da]">
         <div className="mb-14 text-left">
           <span className="text-xs uppercase tracking-[0.2em] text-[#9e5033] font-medium block">
@@ -138,36 +168,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Featured Collection Showcase */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
-          <div>
-            <span className="text-xs uppercase tracking-[0.2em] text-[#9e5033] font-medium block">
-              Curated Garments
-            </span>
-            <h2 className="font-editorial text-3xl sm:text-4xl text-[#141413] mt-2 font-normal">
-              Available for immediate try-on.
-            </h2>
-          </div>
-
-          <Link
-            href="/shop"
-            className="text-xs uppercase tracking-[0.14em] font-medium text-[#141413] hover:text-[#9e5033] flex items-center gap-1 transition-colors"
-          >
-            <span>View Full Catalog ({products.length})</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {showcaseProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
-
-      {/* Privacy Guarantee Note (Honest & Explicit) */}
-      <section className="bg-[#f2efe6] border-t border-[#e2ded4] py-16 px-4 sm:px-6 lg:px-8">
+      {/* 5. Privacy Guarantee Note (Honest & Explicit) */}
+      <section className="bg-[#f2efe6] py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center space-y-4">
           <div className="w-10 h-10 mx-auto rounded-full border border-[#d6d2c8] flex items-center justify-center text-[#9e5033]">
             <ShieldCheck className="w-5 h-5" />
