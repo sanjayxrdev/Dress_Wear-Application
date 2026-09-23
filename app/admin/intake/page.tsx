@@ -43,19 +43,20 @@ export default function GarmentIntakePage() {
     <div className="min-h-screen bg-[#141413] text-[#fcfbf8] font-sans">
       {/* Header */}
       <header className="border-b border-white/10 bg-black/40 backdrop-blur-md sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-16 py-3 sm:py-0 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <Link
               href="/admin"
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors shrink-0"
+              aria-label="Back to Admin"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <div>
-              <h1 className="text-base font-serif tracking-tight text-white font-medium">
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base font-serif tracking-tight text-white font-medium truncate">
                 Garment Intake & Validation Studio
               </h1>
-              <p className="text-[11px] text-white/50 tracking-wider uppercase">
+              <p className="text-[11px] text-white/50 tracking-wider uppercase truncate">
                 Asset Quality Gating & Structured Metadata Intake
               </p>
             </div>
@@ -64,7 +65,7 @@ export default function GarmentIntakePage() {
           <button
             onClick={handleValidate}
             disabled={isValidating}
-            className="py-2 px-4 rounded-xl bg-[#9e5033] hover:bg-[#85432b] text-xs font-medium text-white transition-all flex items-center gap-2 shadow-md shadow-[#9e5033]/20 disabled:opacity-50"
+            className="py-2 px-4 rounded-xl bg-[#9e5033] hover:bg-[#85432b] text-xs font-medium text-white transition-all flex items-center gap-2 shadow-md shadow-[#9e5033]/20 disabled:opacity-50 shrink-0"
           >
             {isValidating ? (
               <span>Validating Asset...</span>
@@ -79,7 +80,7 @@ export default function GarmentIntakePage() {
       </header>
 
       {/* Main Body */}
-      <main className="max-w-7xl mx-auto px-6 py-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Form & Controls */}
           <div className="lg:col-span-7 space-y-6">

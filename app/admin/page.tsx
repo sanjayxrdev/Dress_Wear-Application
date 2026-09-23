@@ -51,52 +51,52 @@ export default function MerchantAdminPage() {
     <div className="min-h-screen bg-[#141413] text-[#fcfbf8] font-sans">
       {/* Top Header */}
       <header className="border-b border-white/10 bg-black/40 backdrop-blur-md sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-[#9e5033]/20 border border-[#9e5033]/30 text-[#9e5033]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-16 py-3 sm:py-0 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 rounded-xl bg-[#9e5033]/20 border border-[#9e5033]/30 text-[#9e5033] shrink-0">
               <Sparkles className="w-5 h-5" />
             </div>
-            <div>
-              <h1 className="text-base font-serif tracking-tight text-white font-medium">
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base font-serif tracking-tight text-white font-medium truncate">
                 StyleTry AI — Merchant Admin
               </h1>
-              <p className="text-[11px] text-white/50 tracking-wider uppercase">
+              <p className="text-[11px] text-white/50 tracking-wider uppercase truncate">
                 {merchant?.name || 'Atelier Haute'} • Plan: {merchant?.plan || 'Growth'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Link
               href="/admin/benchmarks"
-              className="py-2 px-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-white/80 hover:text-white transition-all flex items-center gap-1.5"
+              className="py-2 px-3 sm:px-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-white/80 hover:text-white transition-all flex items-center gap-1.5"
             >
-              <Gauge className="w-3.5 h-3.5 text-emerald-400" />
+              <Gauge className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span>Live Benchmarks</span>
             </Link>
 
             <Link
               href="/admin/intake"
-              className="py-2 px-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-white/80 hover:text-white transition-all flex items-center gap-1.5"
+              className="py-2 px-3 sm:px-3.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-white/80 hover:text-white transition-all flex items-center gap-1.5"
             >
-              <Layers className="w-3.5 h-3.5 text-blue-400" />
-              <span>Garment Intake Studio</span>
+              <Layers className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+              <span>Intake Studio</span>
             </Link>
 
             <Link
               href="/demo-store"
               target="_blank"
-              className="py-2 px-3.5 rounded-xl bg-[#9e5033] hover:bg-[#85432b] text-xs font-medium text-white transition-all flex items-center gap-1.5 shadow-md shadow-[#9e5033]/20"
+              className="py-2 px-3 sm:px-3.5 rounded-xl bg-[#9e5033] hover:bg-[#85432b] text-xs font-medium text-white transition-all flex items-center gap-1.5 shadow-md shadow-[#9e5033]/20"
             >
-              <span>View Storefront Demo</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
+              <span>Demo</span>
+              <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
             </Link>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-10 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-8">
         {saveSuccess && (
           <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-sm flex items-center gap-2 animate-fade-in">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
