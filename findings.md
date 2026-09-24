@@ -1,60 +1,50 @@
-# Findings & Technical Context — Fitted (AI Virtual Try-On)
+# Findings & Technical Architecture — Live Camera Try-On
 
-## 1. Web Application Core (Completed & Verified)
-- Next.js 16.3.6 App Router, TypeScript, Tailwind CSS v4, Lucide React, Framer Motion, and Supabase client.
-- Editorial luxury fashion design system: Playfair Display serif headlines + Plus Jakarta Sans, `#fcfbf8` ivory, `#141413` charcoal, `#9e5033` terracotta.
-- Complete navigation and 13 routes verified with HTTP 200:
-  - Landing (`/`), Catalog (`/shop`), Product Detail (`/product/[id]`), Studio (`/try-on`, `/try-on/[productId]`), Wardrobe (`/wardrobe`), History (`/history`), Profile (`/profile`), Auth (`/login`, `/signup`).
-  - API endpoints `/api/try-on` and `/api/user/delete-data`.
+## 1. Provider Proxy & Security Architecture
+- **No Browser API Keys**: `DECART_API_KEY` must never exist in client-side code (`NEXT_PUBLIC_` prefix forbidden for private keys).
+- **Server Proxy Pattern**: Client sends WebRTC offer SDP to `/api/vton/session`. The server endpoint checks concurrency/queue limits, applies `DECART_API_KEY`, sends the SDP offer to Decart's signaling endpoint (`https://vton-stream.decart.ai/webrtc/v1/session`), and returns the SDP answer.
+- **Mock/Fallback Seamless Handoff**: If no `DECART_API_KEY` is provisioned, or if Decart returns an outage or high latency, the server returns `{ status: 'fallback', reason: 'provider_offline' }` and the client immediately continues with the local on-device AR WebGL renderer with the subtle banner "Using basic preview".
 
-## 2. Real-Time Virtual Try-On Extension Architecture (Manifest V3)
-- **Two-Tier Engine**:
-  - **Tier 1 (Live Video Overlay - Client-Side CV)**:
-    - Runs in real time over the live webcam feed.
-    - Estimates upper body/shoulder/torso position in real time using client-side facial/torso landmark tracking.
-    - Warps and composites the selected garment texture over the live moving video feed at 30-60 FPS with alpha blending, so the user sees their face and the outfit dynamically conforming to their movements.
-  - **Tier 2 (Photorealistic AI Capture - Server-Side Diffusion)**:
-    - Triggered on "Capture", sends the high-res snapshot to `/api/try-on` for photorealistic diffusion garment transfer.
-    - Features the Before/After split slider, wardrobe save, and deep link to the companion app.
-- **Universal Product Detector (`content-script.ts`)**:
-  - Injects a discrete editorial "Try-On" badge onto product images across any shopping site.
-  - Monitors DOM mutations (`MutationObserver`) for infinite scrolling.
-  - Fallback manual mode: allows user to drag any image on the page onto the widget or right-click context menu ("Try this on").
-- **Floating Shadow DOM Widget (`widget/`)**:
-  - Shadow DOM isolation preventing host-page CSS conflicts.
-  - Floating, draggable, resizable viewfinder chrome matching the camera equipment aesthetic.
-  - Live recording honesty indicator.
-  - Seamless in-widget garment switching.
+## 2. Capacity & Queue Design
+- **Session Limits**: Max 5 concurrent WebRTC streams by default (configurable via `MAX_CONCURRENT_SESSIONS`).
+- **Session Duration Limit**: 300 seconds (5 min) max per session.
+- **Idle Timeout**: 90 seconds of no interaction / window blur disconnects the stream.
+- **Queue System**:
+  - In-memory ring buffer / queue state with timestamps.
+  - Waiting clients poll `/api/vton/queue?queueId=...` every 2s.
+  - Position: `You're #N in line`, estimated wait: `position * 30s`.
+  - Actions: "Leave queue" or "Use basic preview now" (bypasses wait by using on-device AR).
 
-## 4. Identity-Preserving Generation Pipeline & Reference Result Screen Analysis
-- **Problem Diagnosis**:
-  - The previous pipeline treated try-on as general generation or fell back to static stock imagery, which replaced the user with a completely different model (different face, hair, skin, body).
-  - Virtual try-on requires **mask-conditioned garment transfer**: the input photo must be separated into a clothing region mask (`personMask`) and a preserved region (face, hair, ears, chin, hands, background).
-  - Anything outside the clothing mask must be retained pixel-for-pixel from the source photo.
-- **Pose & Fit Conditioning**:
-  - Extracting `poseKeypoints` (neck anchor, shoulder slope, torso bounds) ensures the garment conforms to the user's actual body structure rather than a stock model's proportions.
-- **Automated Identity Gate (`identityMatchScore`)**:
-  - A facial feature comparison between input and output must verify identity before showing results.
-  - If `identityMatchScore < 0.85`, the generation is rejected with clear user guidance ("Please ensure a well-lit, front-facing shot") rather than showing a mismatched person.
-- **Pre-Capture Input Quality Validation**:
-  - Low lighting, bad angles, and occluded faces cause diffusion models to hallucinate new identities.
-  - Adding real-time lighting and face-centering checks in `CameraCapture.tsx` prevents low-quality inputs before generation starts.
-- **Reference Result Screen Specifications**:
-  - Full-bleed vertical image with zero card framing.
-  - `YOUR PHOTO` pill (top-left) and `WEARING [GARMENT NAME]` pill (top-right).
-  - Vertical split drag slider with 1:1 pointer tracking and circular grip handle.
-  - `HOLD TO VIEW ORIGINAL` momentary press-and-hold button (bottom-left) with eye icon.
-## 5. Live On-Device AR Fitting Room & Browser E2E Automation
-- **Three.js Orthographic Projection Mapping**:
-  - WebGL canvas matches video dimensions (`width`, `height`) exactly.
-  - Setting up an `OrthographicCamera(0, vw, 0, -vh, 0.1, 1000)` with `-Y` coordinates allows direct 1:1 mapping between 2D screen/landmark coordinates and WebGL plane geometries without perspective distortion.
-- **Timing Precision in Client Telemetry**:
-  - `performance.now()` measures elapsed time relative to `timeOrigin` (navigation start), whereas `Date.now()` is wall-clock unix epoch ms (~1.79 trillion ms).
-  - Mixing `performance.now()` with `Date.now()` causes negative delta timestamps. Using `performance.now()` consistently across `session_start` (TTFR) and `session_end` produces accurate millisecond precision.
-- **Sandboxed Iframe & Drawer Pointer Interception**:
-  - In embedded e-commerce widgets (Shopify / WooCommerce), the outer header must yield when the full AR viewport becomes active to prevent z-index occlusion.
-  - Open side drawers (e.g. Style Match drawer) with `fixed inset-y-0` capture pointer events; automating user journeys in Playwright requires explicit close interactions before clicking backdrop/parent elements.
-- **Fake Media Stream in Headless Playwright**:
-  - `--use-fake-device-for-media-stream` and `--use-fake-ui-for-media-stream` provide a virtual color test pattern camera feed on Linux without requiring physical webcam hardware.
-  - Initializing `LookQualityAssessment` with baseline defaults allows instant HUD rendering before the first video frame is processed by canvas luminance analysis.
+## 3. Framing Guidance Pipeline
+- Framing check runs locally at 10 Hz:
+  - Upper body visibility (ratio between 0.25 and 0.85).
+  - Person presence.
+  - Lighting luminance (70-170 ideal, < 40 too dark, > 215 blown out).
+  - Motion energy.
+- Messages:
+  - Not detected -> "Move into the frame"
+  - Too close (> 0.85) -> "Step back"
+  - Too far (< 0.25) -> "Move closer"
+  - Dark room (< 40) -> "Face the light"
+  - Fast motion -> "Hold still"
+- Silhouette outline guide displayed until user is stable.
+- Once framed, brief "Getting your fitting room ready..." shimmer state without blank screen flash.
 
+## 4. Draggable Floating Window Behavior
+- On desktop (>= 768px): Pointer drag on header bar allows user to position the fitting room anywhere over the product page.
+- On mobile (< 768px): Automatically locks to fixed 100vw x 100vh full-screen view.
+- Controls:
+  - Side actions: expand full screen, share look, save look.
+  - Bottom bar: Garment name, price, Change Item, AI Style Check, Add to Cart.
+
+## 5. Live Camera Black Screen Bug Diagnosis & Root Cause
+- **Primary Root Cause (c & d)**: The camera stream lifecycle was bound inside a `useEffect` whose dependency array contained `reportTelemetry`. `reportTelemetry` previously referenced changing state `fps` and `qualityState`, mutating its reference on every telemetry frame (100ms–1000ms). Consequently, React constantly unmounted and cleaned up the `useEffect`, calling `streamRef.current.getTracks().forEach(t => t.stop())` immediately after acquiring camera access.
+- **Secondary Root Cause (a & b)**: Layers lacked explicit, rigorous z-indexes (`z-0` on video, `z-10` on canvas, `z-20` on guide, `z-30` on controls), meaning stacking order was sensitive to DOM re-renders. Furthermore, the video container had `bg-black`, so a stopped or unplayed stream appeared completely black behind the silhouette.
+- **Premature Guidance**: Initial empty frames returned `bodyRegionVisible: false`, which triggered a default `else if (!assessment.bodyRegionVisible)` condition emitting `"Step back so shoulders fit"` before any person was detected.
+- **Resolution**:
+  - Mirrored `<video>` element rendered unconditionally at `z-0` (`object-cover [transform:scaleX(-1)]`).
+  - Transparent overlay `<canvas>` at `z-10` cleared with `clearRect(0,0,w,h)` every frame (never filled black).
+  - Silhouette guide outline + guidance pill at `z-20` (semi-transparent outline, head in upper third, shoulders inside frame).
+  - Controls and camera error states at `z-30`.
+  - Added cancellation token guarding against React StrictMode double-mount unmount/remount cycles.
+  - Added 3-second watchdog timer for black/frozen frames with friendly user actionable guidance and retry button.

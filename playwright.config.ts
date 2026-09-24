@@ -27,5 +27,17 @@ export default defineConfig({
         permissions: ['camera'],
       },
     },
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+        launchOptions: {
+          firefoxUserPrefs: {
+            'media.navigator.permission.disabled': true,
+            'media.navigator.streams.fake': true,
+          },
+        },
+      },
+    },
   ],
 });

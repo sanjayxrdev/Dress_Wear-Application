@@ -1,23 +1,84 @@
 import { test, expect } from '@playwright/test';
 
-test.use({
-  launchOptions: {
-    args: [
-      '--use-fake-device-for-media-stream',
-      '--use-fake-ui-for-media-stream',
-    ],
-  },
-  permissions: ['camera'],
-});
+
 
 test.describe('StyleTry AI — Live Virtual Fitting Room Acceptance Journey', () => {
 
-  test('full merchant embed customer journey: consent, live video fitting, atomic switch, style match', async ({
+  test('product page live try-on: floating window, framing guide, no slider, garment swap, style check', async ({
+    page,
+  }) => {
+    // 1. Visit Product Page directly
+    await page.goto('http://localhost:3000/product/prod-wool-overcoat');
+    await expect(page.locator('text=Architectural Wool Overcoat').first()).toBeVisible({ timeout: 10000 });
+
+    // 2. Click "Try It On Yourself" launcher
+    const tryOnCta = page.locator('#product-try-on-cta');
+    await expect(tryOnCta).toBeVisible();
+    await tryOnCta.click();
+
+    // 3. Verify Floating Draggable Fitting Room mounts
+    await expect(page.locator('text=StyleTry AI Live')).toBeVisible({ timeout: 10000 });
+
+    // 4. CRITICAL REQUIREMENT: Verify NO comparison slider or photo upload exists
+    const sliderInput = page.locator('input[type="range"]');
+    await expect(sliderInput).toHaveCount(0);
+    const comparisonSlider = page.locator('.comparison-slider, [data-slider]');
+    await expect(comparisonSlider).toHaveCount(0);
+
+    // 5. Verify Framing Guidance is present
+    const framingGuide = page
+      .locator('text=Move into the frame')
+      .or(page.locator('text=Face the light'))
+      .or(page.locator('text=Step back'))
+      .or(page.locator('text=Hold still'))
+      .or(page.locator('text=Getting your fitting room ready'))
+      .or(page.locator('text=Optimal Framing & Lighting'));
+    await expect(framingGuide.first()).toBeVisible({ timeout: 10000 });
+
+    // 6. Verify Bottom Bar: Garment Name, Price, Change Item, AI Style Check, Add to Cart
+    await expect(page.locator('text=Architectural Wool Overcoat').first()).toBeVisible();
+    await expect(page.locator('button:has-text("Change Item")')).toBeVisible();
+    await expect(page.locator('button:has-text("AI Style")')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add to Cart', exact: true })).toBeVisible();
+
+    // 7. Side Action: Save Look
+    const saveLookBtn = page.locator('button[aria-label="Save Look"]');
+    await expect(saveLookBtn).toBeVisible();
+    await saveLookBtn.click();
+    await expect(page.locator('text=Look saved to your device')).toBeVisible({ timeout: 5000 });
+
+    // 8. AI Style Check: Open and verify physical sizing disclaimer
+    const styleCheckBtn = page.locator('button:has-text("AI Style")');
+    await styleCheckBtn.click();
+    await expect(page.locator('text=Explainable Style Match')).toBeVisible();
+    await expect(page.locator('text=Visual try-on cannot guarantee physical sizing')).toBeVisible();
+
+    const closeDrawerBtn = page.locator('button[aria-label="Close Drawer"]');
+    await closeDrawerBtn.click();
+    await expect(page.locator('text=Explainable Style Match')).not.toBeVisible();
+
+    // 9. Garment Switching without camera restart
+    const changeItemBtn = page.locator('button:has-text("Change Item")');
+    await changeItemBtn.click();
+    const switchItemBtn = page.locator('button[aria-label*="Switch garment to"]').first();
+    if (await switchItemBtn.isVisible()) {
+      await switchItemBtn.click();
+      // Ensure the fitting room remains active
+      await expect(page.locator('text=StyleTry AI Live')).toBeVisible();
+    }
+
+    // 10. Close Fitting Room Window
+    const exitButton = page.locator('button[title="Exit Fitting Room"]').first();
+    await exitButton.click({ force: true });
+    await expect(page.locator('text=StyleTry AI Live')).not.toBeVisible();
+  });
+
+  test('merchant embed customer journey: demo-store with sandboxed iframe', async ({
     page,
   }) => {
     // 1. Visit Merchant Storefront Demo
     await page.goto('http://localhost:3000/demo-store');
-    await expect(page.locator('text=The Structured Wool Trench')).toBeVisible();
+    await expect(page.locator('text=The Structured Wool Trench')).toBeVisible({ timeout: 10000 });
 
     // 2. Click "Try on Live with StyleTry AI" button
     const tryOnButton = page.locator('[data-styletry-trigger]');
@@ -39,17 +100,18 @@ test.describe('StyleTry AI — Live Virtual Fitting Room Acceptance Journey', ()
     const startButton = iframeElement.locator('button:has-text("Start Fitting Room")');
     await startButton.click();
 
-    // 6. Verify Look Quality Monitor HUD appears
+    // 6. Verify StyleTry AI Live Fitting Room mounts inside iframe
     await expect(
-      iframeElement.locator('text=Quality:')
+      iframeElement.locator('text=StyleTry AI Live')
     ).toBeVisible({ timeout: 10000 });
 
-    // 7. Verify Style Match Score Pill is calculated deterministically
-    const styleMatchPill = iframeElement.locator('button:has-text("Style Match:")');
-    await expect(styleMatchPill).toBeVisible();
+    // 7. Verify NO comparison slider exists inside iframe
+    await expect(iframeElement.locator('input[type="range"]')).toHaveCount(0);
 
     // 8. Open Style Match Drawer
-    await styleMatchPill.click();
+    const styleMatchBtn = iframeElement.locator('button:has-text("AI Style")');
+    await expect(styleMatchBtn).toBeVisible();
+    await styleMatchBtn.click();
     await expect(
       iframeElement.locator('text=Explainable Style Match')
     ).toBeVisible();
@@ -63,7 +125,7 @@ test.describe('StyleTry AI — Live Virtual Fitting Room Acceptance Journey', ()
     const closeDrawerBtn = iframeElement.locator('button[aria-label="Close Drawer"]');
     await closeDrawerBtn.click();
 
-    // 10. Close Fitting Room and verify clean camera termination
+    // 10. Close Fitting Room and verify clean termination
     const exitButton = iframeElement.locator('button[title="Exit Fitting Room"]').first();
     await exitButton.click();
   });

@@ -9,13 +9,8 @@ export * from './mock-adapter';
 export * from './decart-adapter';
 
 export function createVTONProvider(preferLive = false): IVTONProvider {
-  const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
-  const hasDecartKey = Boolean(process.env.NEXT_PUBLIC_DECART_API_KEY);
-
-  if (!isDemo && hasDecartKey && preferLive) {
-    return new DecartVTONProvider({
-      apiKey: process.env.NEXT_PUBLIC_DECART_API_KEY,
-    });
+  if (preferLive) {
+    return new DecartVTONProvider();
   }
 
   // Default to reliable, high-fidelity Mock adapter for demo/testing

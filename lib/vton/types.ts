@@ -116,5 +116,6 @@ export interface LookQualityAssessment {
   motionBlurScore: number; // 0-100 (higher = sharper, lower = blurry)
   occlusionScore: number; // 0-100 (higher = clear, lower = occluded)
   compositeQuality: number; // 0-100
+  torsoRatio?: number; // 0-1 normalized torso area ratio
   timestamp: number;
 }

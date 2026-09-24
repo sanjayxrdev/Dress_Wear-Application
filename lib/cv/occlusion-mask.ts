@@ -92,6 +92,7 @@ export class OcclusionMaskEngine {
     // 3. Composite the foreground arms/hair onto the target canvas over the garment
     const targetCtx = targetCanvas.getContext('2d');
     if (targetCtx) {
+      targetCtx.clearRect(0, 0, w, h);
       targetCtx.save();
       targetCtx.globalCompositeOperation = 'source-over';
       targetCtx.drawImage(this.maskCanvas, 0, 0);

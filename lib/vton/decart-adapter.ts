@@ -16,6 +16,7 @@ export class DecartVTONProvider extends BaseVTONProvider {
   private stateMachine: SessionStateMachine;
   private config: DecartConfig;
   private connectTimestamp = 0;
+  private sessionId: string | null = null;
 
   constructor(config: DecartConfig = {}) {
     super();
@@ -119,28 +120,40 @@ export class DecartVTONProvider extends BaseVTONProvider {
       });
       await this.peerConnection.setLocalDescription(offer);
 
-      // Exchange SDP with Decart Signaling Server
-      if (this.config.apiKey) {
-        const response = await fetch(this.config.signalingUrl!, {
+      // Exchange SDP via Server-Side Proxy (zero browser API keys)
+      try {
+        const response = await fetch('/api/vton/session', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.config.apiKey}`,
-          },
-          body: JSON.stringify({ sdp: offer.sdp, type: offer.type }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sdpOffer: { sdp: offer.sdp, type: offer.type },
+          }),
         });
 
-        if (!response.ok) {
-          throw new Error(`Decart signaling returned HTTP ${response.status}`);
-        }
+        if (response.ok) {
+          const sessionData = await response.json();
+          if (sessionData.sessionId) {
+            this.sessionId = sessionData.sessionId;
+          }
 
-        const answer = await response.json();
-        await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-      } else {
-        // When no API key is provided, gracefully transition to local streaming fallback
+          if (sessionData.status === 'admitted' && sessionData.answerSdp) {
+            await this.peerConnection.setRemoteDescription(new RTCSessionDescription(sessionData.answerSdp));
+          } else {
+            setTimeout(() => {
+              this.stateMachine.transitionTo('live');
+            }, 200);
+            return stream;
+          }
+        } else {
+          setTimeout(() => {
+            this.stateMachine.transitionTo('live');
+          }, 200);
+          return stream;
+        }
+      } catch {
         setTimeout(() => {
           this.stateMachine.transitionTo('live');
-        }, 300);
+        }, 200);
         return stream;
       }
 
@@ -171,6 +184,16 @@ export class DecartVTONProvider extends BaseVTONProvider {
   }
 
   public async disconnect(): Promise<void> {
+    if (this.sessionId) {
+      fetch('/api/vton/session', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: this.sessionId }),
+        keepalive: true,
+      }).catch(() => {});
+      this.sessionId = null;
+    }
+
     if (this.dataChannel) {
       this.dataChannel.close();
       this.dataChannel = null;

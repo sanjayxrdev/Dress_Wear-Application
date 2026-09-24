@@ -72,5 +72,33 @@
     4. Honest 3-Step Process (01 Select, 02 Frame/Upload, 03 Compare & Curate)
     5. Privacy Guarantee & Data Retention Controls
   - Strictly preserved 100% of website color palettes without modification. All unit and E2E tests passing.
+- [2026-09-24] **Phase 19: Pure Live Camera Try-On & Decart VTON Architecture**:
+  - Removed before/after comparison slider and still-photo try-on entirely. Replaced with pure live video fitting room.
+  - Implemented floating draggable window (`LiveARFittingRoom.tsx`) over product detail pages (`app/product/[id]/page.tsx`) via `ProductTryOnLauncher.tsx` using `createPortal` to `document.body`.
+  - Built Decart WebRTC server proxy (`app/api/vton/session/route.ts`) and session queue manager (`lib/vton/session-queue.ts`), strictly ensuring secret API keys are never exposed to client bundles.
+  - Implemented on-device framing guidance ("Move into the frame", "Face the light", "Step back", "Hold still") with SVG body silhouette guide, translucent "Getting your fitting room ready..." shimmer transition, and fallback badge ("Basic Preview").
+  - Built capacity and queue overlay ("You're #N in line, estimated wait ~Xs") with "Leave queue" and "Use basic preview now" options.
+  - Implemented side floating actions (Expand/Restore, Share Look, Save Look snapshot) and bottom deck (Garment name, price, sizes, Change Item drawer for atomic swap without camera restart, AI Style Check, Add to Cart).
+  - Verified privacy protocol: explicit consent modal, immediate track stoppage on window exit or navigation.
+  - Executed tests: 22/22 unit/integration tests (`npm test`) passing; 2/2 Playwright E2E tests (`npx playwright test`) passing in fake media stream headless Chromium; production build (`npm run build`) compiled cleanly in 23/23 routes.
+- [2026-09-24] **Phase 20: Bug Fix — Live Camera Viewport Black Screen on /try-on**:
+  - **Diagnosed Root Cause**:
+    1. Unstable `useCallback` dependency (`reportTelemetry` referencing rapidly changing `fps` and `qualityState`) repeatedly triggered the camera `useEffect` teardown cleanup, executing `stream.getTracks().forEach(t => t.stop())` and killing the active camera stream right after mounting.
+    2. In React StrictMode (dev mode), double-mount canceled the stream while `video.onloadedmetadata` did not trigger play reliably.
+    3. Missing explicit `z-0` on `<video>` and `z-10` on overlay `<canvas>`.
+    4. Initial empty frame analysis emitted `bodyRegionVisible: false` which defaulted to "Step back so shoulders fit" before a person was ever detected.
+    5. Catch blocks in capacity check caused unconditional "Basic Preview" fallback.
+  - **Implemented Fix**:
+    1. Stabilized `reportTelemetry` to read from mutable `fpsRef` and `qualityRef`, preventing re-instantiation.
+    2. Implemented resilient camera hook with `cancelled` token and React StrictMode double-mount protection.
+    3. Rebuilt viewport layers: `z-0` `<video>` (mirrored, `object-fit: cover`, never hidden), `z-10` overlay `<canvas>` (cleared with `clearRect` every frame, never filled black), `z-20` silhouette outline guide + guidance pill, `z-30` controls and error modal.
+    4. Sized silhouette guide with head in upper third and shoulders inside frame, semi-transparent outline only.
+    5. Corrected guidance logic: "Looking for you..." before detection; "Step back so shoulders fit" only when shoulders are cut off; "Move closer" when too small; "Face the light" when dark; "Hold still" on motion blur; "Perfect, hold still" when framed.
+    6. Added 3-second black/frozen frame watchdog timer and friendly error states (Permission denied, no camera, in use by another app, unsupported browser) with Retry button.
+  - **Verification**:
+    - `npm test`: 22/22 unit tests passing.
+    - `npx playwright test`: 8/8 E2E tests passing across Chromium and Firefox.
+    - Verified live video starts within 1.0–1.3s in dev mode (localhost:3001) with React StrictMode and in production build (localhost:3000).
+    - Verified all tracks cleanly stopped on unmount / window close.
 
 

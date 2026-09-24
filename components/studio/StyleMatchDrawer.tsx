@@ -49,7 +49,7 @@ export function StyleMatchDrawer({
       role="dialog"
       aria-modal="true"
       aria-labelledby="style-drawer-title"
-      className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-[#141413] border-l border-white/10 shadow-2xl flex flex-col text-white animate-slide-left font-sans"
+      className="fixed inset-y-0 right-0 z-[70] w-full max-w-md bg-[#141413] border-l border-white/10 shadow-2xl flex flex-col text-white animate-slide-left font-sans"
     >
       {/* Drawer Header */}
       <div className="flex items-center justify-between p-5 border-b border-white/10 bg-black/40">

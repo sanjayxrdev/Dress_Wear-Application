@@ -12,6 +12,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+import { ProductTryOnLauncher } from "@/components/studio/ProductTryOnLauncher";
+
 interface ProductPageProps {
   params: Promise<{ id: string }>;
 }
@@ -19,6 +21,7 @@ interface ProductPageProps {
 export default async function ProductDetailPage({ params }: ProductPageProps) {
   const { id } = await params;
   const product = await fittedStore.getProductById(id);
+  const allProducts = await fittedStore.getProducts();
 
   if (!product) {
     notFound();
@@ -141,25 +144,8 @@ export default async function ProductDetailPage({ params }: ProductPageProps) {
               </div>
             </div>
 
-            {/* PRIMARY CTA: Launch Virtual Try-On Studio with this Product */}
-            <div className="space-y-3 pt-4 border-t border-[#e8e4da]">
-              <Link
-                href={`/try-on/${product.id}`}
-                className="w-full py-4 bg-[#9e5033] hover:bg-[#864228] text-white text-xs uppercase tracking-[0.18em] font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm"
-                id="product-try-on-cta"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>Try It On Yourself</span>
-              </Link>
-
-              <button
-                type="button"
-                className="w-full py-3.5 bg-[#141413] hover:bg-[#282725] text-white text-xs uppercase tracking-[0.16em] font-semibold flex items-center justify-center gap-2 transition-colors"
-              >
-                <ShoppingBag className="w-4 h-4" />
-                <span>Add To Cart • {formatPrice(product.price, product.currency)}</span>
-              </button>
-            </div>
+            {/* PRIMARY CTA: Launch Floating Virtual Try-On Studio with this Product */}
+            <ProductTryOnLauncher product={product} allProducts={allProducts} />
 
             {/* Editorial Material & Fit Disclosure Box */}
             <div className="p-6 bg-[#f7f5ee] border border-[#e8e4da] space-y-4 text-xs">

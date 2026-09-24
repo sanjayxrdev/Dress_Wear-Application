@@ -206,6 +206,7 @@ export class LookQualityMonitor {
         motionBlurScore,
         occlusionScore,
         compositeQuality,
+        torsoRatio: Math.round(torsoRatio * 100) / 100,
         timestamp,
       };
     } catch (err) {
